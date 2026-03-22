@@ -15,6 +15,8 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
   app:
+    # extra_hosts:
+    # - "host.docker.internal:host-gateway"
     build: .
     container_name: mechanic_app
     depends_on:

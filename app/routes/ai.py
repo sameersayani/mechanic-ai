@@ -1,37 +1,45 @@
 from fastapi import APIRouter
-import requests
+import os
+from dotenv import load_dotenv
+from openai import OpenAI
+
+load_dotenv()
+
+api_key = os.getenv("OPENAI_API_KEY")
 
 router = APIRouter(prefix="/ai", tags=["AI"])
+
+client = OpenAI(api_key=api_key)
+DEFAULT_CURRENCY = "AUD"
 
 @router.post("/diagnose")
 def diagnose(data: dict):
     issue = data.get("issue")
 
+    currency = data.get("currency", DEFAULT_CURRENCY)
+
     prompt = f"""
-You are an expert car mechanic.
+    You are an expert car mechanic.
 
-Diagnose the issue: {issue}
+    Diagnose the issue: {issue}
 
-Provide:
-1. Possible causes
-2. Estimated cost in INR
-3. Simple explanation
-"""
+    Provide:
+    1. Possible causes
+    2. Estimated cost in {currency}
+    3. Simple explanation for customer
+    """
 
     try:
-        response = requests.post(
-            "http://localhost:11434/api/generate",
-            json={
-                "model": "llama3",
-                "prompt": prompt,
-                "stream": False
-            },
-            timeout=60
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",  # fast + cheap
+            messages=[
+                {"role": "system", "content": "You are a helpful car mechanic expert."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7
         )
 
-        res_json = response.json()
-
-        result = res_json.get("response", "No response from AI")
+        result = response.choices[0].message.content
 
         return {"result": result}
 

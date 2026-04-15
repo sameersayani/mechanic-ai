@@ -38,11 +38,11 @@ export const getJobs = async () => {
   return data;
 };
 
-export const diagnoseIssue = async (issue) => {
+export const diagnoseIssue = async (issue, currency = "AUD") => {
   const res = await fetch(`${BASE_URL}/ai/diagnose`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ issue }),
+    body: JSON.stringify({ issue, currency }),
   });
   return res.json();
 };

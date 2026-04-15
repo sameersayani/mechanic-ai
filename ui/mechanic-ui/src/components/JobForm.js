@@ -1,45 +1,91 @@
-import { useState } from "react";
-import { createJob, diagnoseIssue } from "../api";
+import { useEffect, useState } from "react";
+import { createJob, getCustomers, getVehicles } from "../api";
+import { toast } from "react-toastify";
 
 export default function JobForm() {
-  const [issue, setIssue] = useState("");
-  const [aiResult, setAiResult] = useState("");
+  const [customers, setCustomers] = useState([]);
+  const [vehicles, setVehicles] = useState([]);
+  const [form, setForm] = useState({
+    customer_id: "",
+    vehicle_id: "",
+    issue: "",
+  });
 
-  const handleAI = async () => {
-    const res = await diagnoseIssue(issue);
-    setAiResult(res.result);
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    const c = await getCustomers();
+    const v = await getVehicles();
+
+    setCustomers(c);
+    setVehicles(v);
   };
 
   const handleSubmit = async () => {
-    await createJob({
-      vehicle_id: 1,
-      issue_description: issue,
-      assigned_mechanic: "Raju"
+    if (!form.vehicle_id) {
+      toast.error("Select vehicle");
+      return;
+    }
+
+    const res = await createJob({
+      vehicle_id: form.vehicle_id,
+      issue_description: form.issue,
+      assigned_mechanic: "Raju",
     });
-    alert("Job Created");
+
+    if (res.id) {
+      toast.success("Job created");
+    }
   };
 
   return (
-    <div className="p-4 border rounded-xl shadow mt-4">
-      <h2 className="text-xl font-bold mb-2">Create Job</h2>
+    <div className="card space-y-2">
+
+      <select
+        className="input"
+        onChange={(e) => {
+        console.log("Selected:", e.target.value);
+        setForm({ ...form, customer_id: e.target.value });
+      }}
+      >
+        <option>Select Customer</option>
+        {Array.isArray(customers) && customers.map((c) => (
+        <option key={c[0]} value={c[0]}>
+          {c[1]}
+        </option>
+      ))}
+      </select>
+
+      <select
+        className="input"
+        disabled={!form.customer_id}
+        onChange={(e) =>{
+          setForm({ ...form, vehicle_id: e.target.value })
+        }}
+      >
+        <option>Select Vehicle</option>
+
+        {Array.isArray(vehicles) &&
+          vehicles
+            .filter(v => Number(v[3]) === Number(form.customer_id))
+            .map((v) => (
+              <option key={v[0]} value={v[0]}>
+                {v[1]} {v[2]}
+              </option>
+            ))}
+      </select>
 
       <textarea
-        placeholder="Describe issue..."
-        className="w-full border p-2"
-        onChange={(e) => setIssue(e.target.value)}
+        className="input"
+        placeholder="Issue"
+        onChange={(e) => setForm({ ...form, issue: e.target.value })}
       />
 
-      <div className="flex gap-2 mt-2">
-        <button onClick={handleAI} className="btn">AI Suggest</button>
-        <button onClick={handleSubmit} className="btn">Save Job</button>
-      </div>
-
-      {aiResult && (
-        <div className="mt-3 p-3 bg-gray-100 rounded">
-          <b>AI Suggestion:</b>
-          <p>{aiResult}</p>
-        </div>
-      )}
+      <button onClick={handleSubmit} className="btn">
+        Create Job
+      </button>
     </div>
   );
 }

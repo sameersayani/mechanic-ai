@@ -1,29 +1,41 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from app.db import get_connection
+from app.dependencies import get_current_user
 
 router = APIRouter(prefix="/vehicles", tags=["Vehicles"])
 
 @router.post("/")
-def create_vehicle(vehicle: dict):
+def create_vehicle(data: dict, user_id: int = Depends(get_current_user)):
     conn = get_connection()
     cur = conn.cursor()
 
     cur.execute(
-        """INSERT INTO vehicles 
-        (customer_id, car_number, model, brand, last_service_date)
-        VALUES (%s, %s, %s, %s, %s) RETURNING id""",
-        (
-            vehicle["customer_id"],
-            vehicle["car_number"],
-            vehicle["model"],
-            vehicle["brand"],
-            vehicle["last_service_date"]
-        )
+        """INSERT INTO vehicles (customer_id, make, model, user_id)
+        VALUES (%s, %s, %s, %s) RETURNING id""",
+        (data["customer_id"], data["make"], data["model"], user_id)
     )
 
-    new_id = cur.fetchone()[0]
+    vid = cur.fetchone()[0]
     conn.commit()
     cur.close()
     conn.close()
 
-    return {"id": new_id}
+    return {"id": vid}
+
+
+@router.get("/")
+def get_vehicles(user_id: int = Depends(get_current_user)):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute(
+        "SELECT id, make, model, customer_id FROM vehicles WHERE user_id=%s",
+        (user_id,)
+    )
+
+    rows = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return rows

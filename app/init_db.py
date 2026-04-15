@@ -4,6 +4,13 @@ def init_db():
     conn = get_connection()
     cur = conn.cursor()
 
+    cur.execute("""CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    email VARCHAR(100) UNIQUE,
+    password VARCHAR(255)
+    );
+    """)
+
     cur.execute("""
     CREATE TABLE IF NOT EXISTS customers (
         id SERIAL PRIMARY KEY,
@@ -17,9 +24,9 @@ def init_db():
     CREATE TABLE IF NOT EXISTS vehicles (
         id SERIAL PRIMARY KEY,
         customer_id INT REFERENCES customers(id),
-        car_number VARCHAR(20),
+        make VARCHAR(50),
         model VARCHAR(50),
-        brand VARCHAR(50),
+        user_id INT REFERENCES users(id),
         last_service_date DATE
     );
     """)
@@ -55,6 +62,11 @@ def init_db():
     );
     """)
 
+    cur.execute("ALTER TABLE customers ADD COLUMN IF NOT EXISTS user_id INT;")
+    cur.execute("ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS user_id INT;")
+    cur.execute("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS user_id INT;")
+    cur.execute("ALTER TABLE invoices ADD COLUMN IF NOT EXISTS user_id INT;")
+    
     conn.commit()
     cur.close()
     conn.close()

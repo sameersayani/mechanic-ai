@@ -1,16 +1,50 @@
-import CustomerForm from "./components/CustomerForm";
-import JobForm from "./components/JobForm";
-import JobList from "./components/JobList";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
+import Layout from "./components/Layout";
+import ProtectedRoute from "./components/ProtectedRoute";
+
+import Dashboard from "./pages/Dashboard";
+import Customers from "./pages/Customers";
+import Jobs from "./pages/Jobs";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import Vehicles from "./pages/Vehicles";
 
 function App() {
   return (
-    <div className="p-6 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">Mechanic AI Dashboard</h1>
+    <>
+    <ToastContainer 
+    position="bottom-left"
+    autoClose={2000}
+    theme="colored"
+  />
+    <BrowserRouter>
+      <Routes>
+        
+        {/* Public route */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
 
-      <CustomerForm />
-      <JobForm />
-      <JobList />
-    </div>
+        {/* Protected routes */}
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Dashboard />} />
+          <Route path="customers" element={<Customers />} />
+          <Route path="vehicles" element={<Vehicles />} />
+          <Route path="jobs" element={<Jobs />} />
+        </Route>
+
+      </Routes>
+    </BrowserRouter>
+    </>
   );
 }
 

@@ -1,37 +1,41 @@
 from fastapi import APIRouter
 from app.db import get_connection
+from app.dependencies import get_current_user
+from fastapi import Depends
 
 router = APIRouter(prefix="/jobs", tags=["Jobs"])
 
 @router.post("/")
-def create_job(job: dict):
+def create_job(data: dict, user_id: int = Depends(get_current_user)):
     conn = get_connection()
     cur = conn.cursor()
 
     cur.execute(
         """INSERT INTO jobs 
-        (vehicle_id, issue_description, assigned_mechanic)
-        VALUES (%s, %s, %s) RETURNING id""",
+        (vehicle_id, issue_description, assigned_mechanic, user_id)
+        VALUES (%s, %s, %s, %s) RETURNING id""",
         (
-            job["vehicle_id"],
-            job["issue_description"],
-            job["assigned_mechanic"]
+            data["vehicle_id"],   # must exist!
+            data["issue_description"],
+            data["assigned_mechanic"],
+            user_id
         )
     )
 
-    new_id = cur.fetchone()[0]
+    jid = cur.fetchone()[0]
+
     conn.commit()
     cur.close()
     conn.close()
 
-    return {"id": new_id}
+    return {"id": jid}
 
 @router.get("/")
-def get_jobs():
+def get_jobs(user_id: int = Depends(get_current_user)):
     conn = get_connection()
     cur = conn.cursor()
 
-    cur.execute("SELECT * FROM jobs")
+    cur.execute("SELECT * FROM jobs WHERE user_id = %s", (user_id,))
     rows = cur.fetchall()
 
     cur.close()

@@ -1,27 +1,122 @@
-import CustomerForm from "../components/CustomerForm";
-import JobForm from "../components/JobForm";
-import JobList from "../components/JobList";
+import { useEffect, useState } from "react";
+import { getCustomers, getVehicles, getJobs } from "../api";
+import JobsChart from "../components/JobsChart";
+import RecentJobs from "../components/RecentJobs";
 
 export default function Dashboard() {
+  const [stats, setStats] = useState({
+    customers: 0,
+    vehicles: 0,
+    jobs: 0,
+  });
+
+  const [jobs, setJobs] = useState([]);
+  const [chartData, setChartData] = useState([]);
+
+  useEffect(() => {
+    loadStats();
+  }, []);
+
+const loadStats = async () => {
+  const c = await getCustomers();
+  const v = await getVehicles();
+  const j = await getJobs();
+
+  setStats({
+    customers: c.length || 0,
+    vehicles: v.length || 0,
+    jobs: j.length || 0,
+  });
+
+  setJobs(j);
+
+  // fake grouping (simple POC)
+  const grouped = j.reduce((acc, job, index) => {
+    const key = "Day " + (index + 1);
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+
+  const chart = Object.keys(grouped).map((k) => ({
+    date: k,
+    count: grouped[k],
+  }));
+
+  setChartData(chart);
+};
+
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-4">Dashboard</h1>
+    <div className="space-y-6">
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-        <div className="card">Total Jobs: 12</div>
-        <div className="card">Pending: 5</div>
-        <div className="card">Completed: 7</div>
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold">Dashboard</h1>
+        <p className="text-gray-500 dark:text-gray-400">
+          Overview of your workshop activity
+        </p>
       </div>
 
-      {/* Forms */}
+      {/* STAT CARDS */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+        {/* Customers */}
+        <div className="rounded-2xl p-5 text-white shadow-lg bg-gradient-to-r from-blue-500 to-blue-600">
+          <div className="flex justify-between items-center">
+            <h2 className="text-sm">Customers</h2>
+            <span className="text-xl">👤</span>
+          </div>
+          <p className="text-3xl font-bold mt-2">{stats.customers}</p>
+        </div>
+
+        {/* Vehicles */}
+        <div className="rounded-2xl p-5 text-white shadow-lg bg-gradient-to-r from-green-500 to-green-600">
+          <div className="flex justify-between items-center">
+            <h2 className="text-sm">Vehicles</h2>
+            <span className="text-xl">🚗</span>
+          </div>
+          <p className="text-3xl font-bold mt-2">{stats.vehicles}</p>
+        </div>
+
+        {/* Jobs */}
+        <div className="rounded-2xl p-5 text-white shadow-lg bg-gradient-to-r from-orange-500 to-orange-600">
+          <div className="flex justify-between items-center">
+            <h2 className="text-sm">Jobs</h2>
+            <span className="text-xl">🔧</span>
+          </div>
+          <p className="text-3xl font-bold mt-2">{stats.jobs}</p>
+        </div>
+
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <CustomerForm />
-        <JobForm />
+      <JobsChart data={chartData} />
+      <RecentJobs jobs={jobs} />
+    </div>
+
+      {/* RECENT ACTIVITY */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-md">
+        <h2 className="text-lg font-semibold mb-3">Recent Activity</h2>
+
+        <div className="space-y-3 text-sm">
+
+          <div className="flex justify-between">
+            <span>New job created</span>
+            <span className="text-gray-400">2 mins ago</span>
+          </div>
+
+          <div className="flex justify-between">
+            <span>Vehicle added</span>
+            <span className="text-gray-400">10 mins ago</span>
+          </div>
+
+          <div className="flex justify-between">
+            <span>Customer registered</span>
+            <span className="text-gray-400">1 hour ago</span>
+          </div>
+
+        </div>
       </div>
 
-      {/* Job List */}
-      <JobList />
     </div>
   );
 }

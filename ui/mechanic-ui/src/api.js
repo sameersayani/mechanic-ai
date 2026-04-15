@@ -69,3 +69,19 @@ export const createVehicle = async (data) => {
   });
   return res.json();
 };
+
+export const createMechanic = async (data) => {
+  const res = await fetch(`${BASE_URL}/mechanics/`, {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify(data),
+  });
+  return res.json();
+};
+
+export const getMechanics = async () => {
+  const res = await fetch(`${BASE_URL}/mechanics/`, {
+    headers: getHeaders(),
+  });
+  return res.json();
+};

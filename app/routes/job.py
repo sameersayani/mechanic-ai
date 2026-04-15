@@ -35,10 +35,27 @@ def get_jobs(user_id: int = Depends(get_current_user)):
     conn = get_connection()
     cur = conn.cursor()
 
-    cur.execute("SELECT * FROM jobs WHERE user_id = %s", (user_id,))
+    cur.execute("""
+        SELECT j.id, j.issue_description,
+               v.make, v.model,
+               m.name
+        FROM jobs j
+        LEFT JOIN vehicles v ON j.vehicle_id = v.id
+        LEFT JOIN mechanics m ON j.mechanic_id = m.id
+        WHERE j.user_id = %s
+        ORDER BY j.id DESC
+    """, (user_id,))
+
     rows = cur.fetchall()
 
-    cur.close()
-    conn.close()
+    result = [
+        {
+            "id": r[0],
+            "issue_description": r[1],
+            "vehicle_name": f"{r[2]} {r[3]}" if r[2] else "",
+            "mechanic_name": r[4]
+        }
+        for r in rows
+    ]
 
-    return rows
+    return result

@@ -53,7 +53,15 @@ export default function Layout() {
               Vehicles
             </Link>
           </li>
-          </ul>
+            <li>
+              <Link 
+                to="/mechanics" 
+                className="block p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+              >
+                Mechanics
+              </Link>
+          </li>
+        </ul>
         </div>
 
         {/* Bottom */}

@@ -11,6 +11,7 @@ import Jobs from "./pages/Jobs";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Vehicles from "./pages/Vehicles";
+import Mechanics from "./pages/Mechanics";
 
 function App() {
   return (
@@ -40,6 +41,7 @@ function App() {
           <Route path="customers" element={<Customers />} />
           <Route path="vehicles" element={<Vehicles />} />
           <Route path="jobs" element={<Jobs />} />
+          <Route path="mechanics" element={<Mechanics />} />
         </Route>
 
       </Routes>

@@ -62,11 +62,22 @@ def init_db():
     );
     """)
 
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS mechanics (
+        id SERIAL PRIMARY KEY,
+        name TEXT,
+        phone TEXT,
+        user_id INT
+    );
+    """)
+
     cur.execute("ALTER TABLE customers ADD COLUMN IF NOT EXISTS user_id INT;")
     cur.execute("ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS user_id INT;")
     cur.execute("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS user_id INT;")
     cur.execute("ALTER TABLE invoices ADD COLUMN IF NOT EXISTS user_id INT;")
-    
+    cur.execute("ALTER TABLE jobs DROP COLUMN IF EXISTS assigned_mechanic;")
+    cur.execute("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS mechanic_id INT REFERENCES mechanics(id);")
+
     conn.commit()
     cur.close()
     conn.close()

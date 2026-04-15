@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { createJob, getCustomers, getVehicles } from "../api";
+import { createJob, getCustomers, getVehicles, getMechanics } from "../api";
 import { toast } from "react-toastify";
 
 export default function JobForm() {
   const [customers, setCustomers] = useState([]);
   const [vehicles, setVehicles] = useState([]);
+  const [mechanics, setMechanics] = useState([]);
   const [form, setForm] = useState({
     customer_id: "",
     vehicle_id: "",
@@ -18,9 +19,11 @@ export default function JobForm() {
   const loadData = async () => {
     const c = await getCustomers();
     const v = await getVehicles();
+    const m = await getMechanics();
 
     setCustomers(c);
     setVehicles(v);
+    setMechanics(m);
   };
 
   const handleSubmit = async () => {
@@ -32,7 +35,7 @@ export default function JobForm() {
     const res = await createJob({
       vehicle_id: form.vehicle_id,
       issue_description: form.issue,
-      assigned_mechanic: "Raju",
+      mechanic_id: form.mechanic_id,
     });
 
     if (res.id) {
@@ -41,8 +44,8 @@ export default function JobForm() {
   };
 
   return (
-    <div className="card space-y-2">
-
+    <div className="card p-4 space-y-2">
+       <h2 className="text-xl font-bold mb-2">Add Job</h2>
       <select
         className="input"
         onChange={(e) => {
@@ -75,6 +78,21 @@ export default function JobForm() {
                 {v[1]} {v[2]}
               </option>
             ))}
+      </select>
+
+      <select
+        className="input"
+        onChange={(e) =>
+          setForm({ ...form, mechanic_id: e.target.value })
+        }
+      >
+        <option value="">Select Mechanic</option>
+
+        {mechanics.map((m) => (
+          <option key={m.id} value={m.id}>
+            {m.name}
+          </option>
+        ))}
       </select>
 
       <textarea

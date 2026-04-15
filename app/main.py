@@ -4,7 +4,7 @@ from app.init_db import init_db
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes import ai
 from app.routes import auth
-
+from app.routes import mechanic
 app = FastAPI()
 
 @app.on_event("startup")
@@ -22,6 +22,7 @@ app.include_router(vehicle.router)
 app.include_router(job.router)
 app.include_router(ai.router)
 app.include_router(auth.router)
+app.include_router(mechanic.router)
 
 @app.get("/")
 def root():

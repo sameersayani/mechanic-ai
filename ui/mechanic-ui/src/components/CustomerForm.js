@@ -1,12 +1,18 @@
 import { useState } from "react";
 import { createCustomer } from "../api";
+import { toast } from "react-toastify";
 
 export default function CustomerForm() {
   const [form, setForm] = useState({ name: "", phone: "", email: "" });
 
   const handleSubmit = async () => {
-    await createCustomer(form);
-    alert("Customer Created");
+    const res = await createCustomer(form);
+    if (res.id) {
+      toast.success("Customer added");
+      setForm({ name: "", phone: "", email: "" });
+    } else {
+      toast.error("Failed to add customer");
+    }
   };
 
   return (

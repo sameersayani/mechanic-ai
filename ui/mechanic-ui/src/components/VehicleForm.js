@@ -40,10 +40,10 @@ export default function VehicleForm() {
         onChange={(e) => setForm({ ...form, customer_id: e.target.value })}
       >
         <option>Select Customer</option>
-        {Array.isArray(customers) && customers.map((c) => (
-        <option key={c[0]} value={c[0]}>
-            {c[1]}
-        </option>
+        {customers.map((c) => (
+            <option key={c.id} value={c.id}>
+            {c.name}
+            </option>
         ))}
       </select>
 

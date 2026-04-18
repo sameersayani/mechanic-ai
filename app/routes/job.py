@@ -12,12 +12,12 @@ def create_job(data: dict, user_id: int = Depends(get_current_user)):
 
     cur.execute(
         """INSERT INTO jobs 
-        (vehicle_id, issue_description, assigned_mechanic, user_id)
+        (vehicle_id, issue_description, mechanic_id, user_id)
         VALUES (%s, %s, %s, %s) RETURNING id""",
         (
             data["vehicle_id"],   # must exist!
             data["issue_description"],
-            data["assigned_mechanic"],
+            data["mechanic_id"],
             user_id
         )
     )
@@ -38,10 +38,11 @@ def get_jobs(user_id: int = Depends(get_current_user)):
     cur.execute("""
         SELECT j.id, j.issue_description,
                v.make, v.model,
-               m.name
+               m.name, j.status
         FROM jobs j
         LEFT JOIN vehicles v ON j.vehicle_id = v.id
         LEFT JOIN mechanics m ON j.mechanic_id = m.id
+        LEFT JOIN customers c ON v.customer_id = c.id
         WHERE j.user_id = %s
         ORDER BY j.id DESC
     """, (user_id,))
@@ -51,9 +52,10 @@ def get_jobs(user_id: int = Depends(get_current_user)):
     result = [
         {
             "id": r[0],
-            "issue_description": r[1],
+            "issue": r[1],
             "vehicle_name": f"{r[2]} {r[3]}" if r[2] else "",
-            "mechanic_name": r[4]
+            "mechanic_name": r[4],
+            "status": r[5] if len(r) > 5 else "Pending"
         }
         for r in rows
     ]

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createMechanic } from "../api";
 import { toast } from "react-toastify";
 
-export default function MechanicForm() {
+export default function MechanicForm({ onSuccess }) {
   const [form, setForm] = useState({
     name: "",
     phone: "",
@@ -19,6 +19,7 @@ export default function MechanicForm() {
     if (res.id) {
       toast.success("Mechanic added");
       setForm({ name: "", phone: "" });
+      onSuccess();
     } else {
       toast.error("Failed to add mechanic");
     }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Car, User } from "lucide-react";
 import { getVehicles } from "../api";
 
 export default function VehicleList() {
@@ -21,9 +22,24 @@ export default function VehicleList() {
         <p>No vehicles found</p>
       ) : (
         vehicles.map((v) => (
-          <div key={v.id} className="border-b py-2">
-            {v.make} {v.model} (Customer ID: {v.customer_id})
-          </div>
+  <div
+    key={v.id}
+    className="flex items-center justify-between border-b py-3 px-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition"
+  >
+    {/* Left: Vehicle */}
+    <div className="flex items-center gap-2">
+      <Car className="w-5 h-5 text-blue-500" />
+      <span className="font-medium">
+        {v.make} {v.model}
+      </span>
+    </div>
+
+    {/* Right: Customer */}
+    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+    <User className="w-4 h-4" />
+    <span>{v.customer_name || "Unknown"}</span>
+    </div>
+    </div>
         ))
       )}
     </div>

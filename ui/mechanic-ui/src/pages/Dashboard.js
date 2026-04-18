@@ -28,14 +28,14 @@ const loadStats = async () => {
     jobs: j.length || 0,
   });
 
-  setJobs(j);
+  const jobsArray = Array.isArray(j) ? j : [];
+  setJobs(jobsArray);
 
-  // fake grouping (simple POC)
-  const grouped = j.reduce((acc, job, index) => {
-    const key = "Day " + (index + 1);
-    acc[key] = (acc[key] || 0) + 1;
-    return acc;
-  }, {});
+const grouped = jobsArray.reduce((acc, job, index) => {
+  const key = "Day " + (index + 1);
+  acc[key] = (acc[key] || 0) + 1;
+  return acc;
+}, {});
 
   const chart = Object.keys(grouped).map((k) => ({
     date: k,

@@ -31,13 +31,21 @@ def get_mechanics(user_id: int = Depends(get_current_user)):
     cur = conn.cursor()
 
     cur.execute(
-        "SELECT id, name FROM mechanics WHERE user_id=%s",
+        "SELECT id, name, phone, user_id FROM mechanics WHERE user_id=%s",
         (user_id,)
     )
 
     rows = cur.fetchall()
 
-    result = [{"id": r[0], "name": r[1]} for r in rows]
+    result = [
+        {
+            "id": r[0],
+            "name": r[1],
+            "phone": r[2],
+            "user_id": r[3]
+        }
+        for r in rows
+    ]
 
     cur.close()
     conn.close()

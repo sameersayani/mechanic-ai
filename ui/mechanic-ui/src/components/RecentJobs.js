@@ -18,7 +18,7 @@ export default function RecentJobs({ jobs }) {
           <tbody>
             {jobs.slice(0, 5).map((j) => (
               <tr key={j.id} className="border-b border-gray-200 dark:border-gray-700">
-                <td className="py-2">{j.issue_description}</td>
+                <td className="py-2">{j.issue || "-"}</td>
                 <td>{j.vehicle_name || "-"}</td>
                 <td>{j.mechanic_name || "-"}</td>
               </tr>

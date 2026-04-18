@@ -33,9 +33,16 @@ export const getJobs = async () => {
     headers: getHeaders(),
   });
 
-  const data = await res.json();
+  if (res.status === 401 || res.status === 403) {
+    console.log("Token expired → redirecting");
 
-  return data;
+    localStorage.removeItem("token");
+    window.location.href = "/login"; // force re-login
+    return [];
+  }
+
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
 };
 
 export const diagnoseIssue = async (issue, currency = "AUD") => {

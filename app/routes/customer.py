@@ -27,10 +27,21 @@ def get_customers(user_id: int = Depends(get_current_user)):
     conn = get_connection()
     cur = conn.cursor()
 
-    cur.execute("SELECT * FROM customers WHERE user_id = %s", (user_id,))
+    cur.execute("SELECT * FROM customers WHERE user_id = %s ORDER BY id DESC", (user_id,))
     rows = cur.fetchall()
+
+    result = [
+        {
+            "id": r[0],
+            "name": r[1],
+            "phone": r[2],
+            "email": r[3],
+            "user_id": r[4]
+        }
+        for r in rows
+    ]
 
     cur.close()
     conn.close()
 
-    return rows
+    return result

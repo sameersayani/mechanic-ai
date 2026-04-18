@@ -11,6 +11,7 @@ export default function CustomerList() {
 
   useEffect(() => {
     loadCustomers();
+    console.log("Customers:", customers);
   }, []);
 
   return (
@@ -21,8 +22,10 @@ export default function CustomerList() {
         <p>No customers found</p>
       ) : (
         customers.map((c) => (
-          <div key={c.id} className="border-b py-2">
+          <div key={c.id} className="border-b py-2 flex flex-col">
             <b>{c.name}</b>
+            <p>{c.phone}</p>
+            <p>{c.email}</p>
           </div>
         ))
       )}

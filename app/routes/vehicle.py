@@ -29,13 +29,23 @@ def get_vehicles(user_id: int = Depends(get_current_user)):
     cur = conn.cursor()
 
     cur.execute(
-        "SELECT id, make, model, customer_id FROM vehicles WHERE user_id=%s",
+        "SELECT v.id, v.make, v.model, v.customer_id, c.name FROM vehicles v INNER JOIN customers c ON v.customer_id = c.id WHERE v.user_id=%s",
         (user_id,)
     )
 
     rows = cur.fetchall()
+    result = [
+        {
+            "id": r[0],
+            "make": r[1],
+            "model": r[2],
+            "customer_id": r[3],
+            "customer_name": r[4]
+        }
+        for r in rows
+    ]
 
     cur.close()
     conn.close()
 
-    return rows
+    return result

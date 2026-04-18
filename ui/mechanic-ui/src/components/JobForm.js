@@ -54,11 +54,11 @@ export default function JobForm() {
       }}
       >
         <option>Select Customer</option>
-        {Array.isArray(customers) && customers.map((c) => (
-        <option key={c[0]} value={c[0]}>
-          {c[1]}
-        </option>
-      ))}
+        {customers.map((c) => (
+          <option key={c.id} value={c.id}>
+            {c.name}
+          </option>
+        ))}
       </select>
 
       <select
@@ -72,10 +72,10 @@ export default function JobForm() {
 
         {Array.isArray(vehicles) &&
           vehicles
-            .filter(v => Number(v[3]) === Number(form.customer_id))
+            .filter(v => Number(v.customer_id) === Number(form.customer_id))
             .map((v) => (
-              <option key={v[0]} value={v[0]}>
-                {v[1]} {v[2]}
+              <option key={v.id} value={v.id}>
+                {v.make} {v.model}
               </option>
             ))}
       </select>

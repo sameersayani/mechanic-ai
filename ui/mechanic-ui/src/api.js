@@ -48,6 +48,13 @@ export const updateJob = async (id, data) => {
   return handleResponse(res);
 };
 
+export const getPendingJobs = async () => {
+  const res = await fetch(`${BASE_URL}/jobs/pending/`, {
+    headers: getHeaders(),
+  });
+  return handleResponse(res);
+}
+
 export const diagnoseIssue = async (issue, currency = "AUD") => {
   const res = await fetch(`${BASE_URL}/ai/diagnose`, {
     method: "POST",

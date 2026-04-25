@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { getCustomers, getVehicles, getJobs } from "../api";
+import { useNavigate } from "react-router-dom";
+import { getCustomers, getVehicles, getPendingJobs } from "../api";
 import JobsChart from "../components/JobsChart";
 import RecentJobs from "../components/RecentJobs";
 
@@ -21,6 +22,7 @@ export default function Dashboard() {
 
   const [jobs, setJobs] = useState([]);
   const [chartData, setChartData] = useState([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadStats();
@@ -31,7 +33,7 @@ export default function Dashboard() {
       const [c, v, j] = await Promise.all([
         getCustomers(),
         getVehicles(),
-        getJobs(),
+        getPendingJobs(),
       ]);
 
       const { items: customers, total: customerTotal } = extractData(c);
@@ -81,7 +83,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
         {/* Customers */}
-        <div className="rounded-2xl p-5 text-white shadow-lg bg-gradient-to-r from-blue-500 to-blue-600">
+        <div  onClick={() => navigate("/customers")} className="rounded-2xl p-5 text-white shadow-lg bg-gradient-to-r from-blue-500 to-blue-600 cursor-pointer hover:opacity-90 hover:scale-[1.02] transition-transform duration-200">
           <div className="flex justify-between items-center">
             <h2 className="text-sm">Customers</h2>
             <span className="text-xl">👤</span>
@@ -90,7 +92,7 @@ export default function Dashboard() {
         </div>
 
         {/* Vehicles */}
-        <div className="rounded-2xl p-5 text-white shadow-lg bg-gradient-to-r from-green-500 to-green-600">
+        <div  onClick={() => navigate("/vehicles")} className="rounded-2xl p-5 text-white shadow-lg bg-gradient-to-r from-green-500 to-green-600 cursor-pointer hover:opacity-90 hover:scale-[1.02] transition-transform duration-200">
           <div className="flex justify-between items-center">
             <h2 className="text-sm">Vehicles</h2>
             <span className="text-xl">🚗</span>
@@ -99,7 +101,7 @@ export default function Dashboard() {
         </div>
 
         {/* Jobs */}
-        <div className="rounded-2xl p-5 text-white shadow-lg bg-gradient-to-r from-orange-500 to-orange-600">
+        <div  onClick={() => navigate("/jobs")} className="rounded-2xl p-5 text-white shadow-lg bg-gradient-to-r from-orange-500 to-orange-600 cursor-pointer hover:opacity-90 hover:scale-[1.02] transition-transform duration-200">
           <div className="flex justify-between items-center">
             <h2 className="text-sm">Jobs</h2>
             <span className="text-xl">🔧</span>

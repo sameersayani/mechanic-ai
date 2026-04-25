@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { setTheme } from "../theme";
 
 export default function ThemeToggle() {
-  const [theme, setThemeState] = useState("light");
+  const [theme, setThemeState] = useState("dark");
 
   useEffect(() => {
     const saved = localStorage.getItem("theme") || "light";

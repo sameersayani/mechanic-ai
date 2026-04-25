@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends
+from fastapi.params import Query
 from app.db import get_connection
 from app.dependencies import get_current_user
 
@@ -26,13 +27,24 @@ def create_mechanic(data: dict, user_id: int = Depends(get_current_user)):
 
 
 @router.get("/")
-def get_mechanics(user_id: int = Depends(get_current_user)):
+def get_mechanics(
+    user_id: int = Depends(get_current_user),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=100),):
+    offset = (page - 1) * page_size
+
     conn = get_connection()
     cur = conn.cursor()
 
     cur.execute(
-        "SELECT id, name, phone, user_id FROM mechanics WHERE user_id=%s",
-        (user_id,)
+    "SELECT COUNT(*) FROM vehicles WHERE user_id=%s",
+    (user_id,)
+    )
+
+    total = cur.fetchone()[0]
+    cur.execute(
+        "SELECT id, name, phone, user_id FROM mechanics WHERE user_id=%s LIMIT %s OFFSET %s",
+        (user_id, page_size, offset)
     )
 
     rows = cur.fetchall()
@@ -50,4 +62,4 @@ def get_mechanics(user_id: int = Depends(get_current_user)):
     cur.close()
     conn.close()
 
-    return result
+    return {"data": result, "total": total}

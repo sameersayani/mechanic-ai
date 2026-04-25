@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createCustomer } from "../api";
 import { toast } from "react-toastify";
 
-export default function CustomerForm({ onSuccess }) {
+export default function CustomerForm({ onCustomerAdded }) {
   const [form, setForm] = useState({
     name: "",
     phone: "",
@@ -47,7 +47,7 @@ export default function CustomerForm({ onSuccess }) {
         email: "",
       });
 
-      onSuccess(); // refresh list
+      onCustomerAdded?.(); // notify parent
     } else {
       toast.error("Failed to add customer");
     }
@@ -90,7 +90,7 @@ export default function CustomerForm({ onSuccess }) {
         }
       />
 
-      <button type="submit" className="btn">
+      <button type="submit" className="btn" onClick={handleSubmit}>
         Add Customer
       </button>
     </form>

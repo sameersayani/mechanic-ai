@@ -15,7 +15,7 @@ export const createCustomer = async (data) => {
     headers: getHeaders(),
     body: JSON.stringify(data),
   });
-  return res.json();
+  return handleResponse(res);
 };
 
 export const createJob = async (data) => {
@@ -24,25 +24,28 @@ export const createJob = async (data) => {
     headers: getHeaders(),
     body: JSON.stringify(data),
   });
-  return res.json();
+  return handleResponse(res);
 };
 
 
-export const getJobs = async () => {
-  const res = await fetch("http://localhost:8000/jobs/", {
-    headers: getHeaders(),
+export const getJobs = async (page = 1, pageSize = 10) => {
+  const res = await fetch(
+    `${BASE_URL}/jobs/?page=${page}&page_size=${pageSize}`,
+    {
+      headers: getHeaders(),
+    }
+  );
+
+  return handleResponse(res);
+};
+
+export const updateJob = async (id, data) => {
+  const res = await fetch(`${BASE_URL}/jobs/${id}/`, {
+    method: "PUT",
+    headers: { ...getHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify(data),
   });
-
-  if (res.status === 401 || res.status === 403) {
-    console.log("Token expired → redirecting");
-
-    localStorage.removeItem("token");
-    window.location.href = "/login"; // force re-login
-    return [];
-  }
-
-  const data = await res.json();
-  return Array.isArray(data) ? data : [];
+  return handleResponse(res);
 };
 
 export const diagnoseIssue = async (issue, currency = "AUD") => {
@@ -51,21 +54,36 @@ export const diagnoseIssue = async (issue, currency = "AUD") => {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ issue, currency }),
   });
-  return res.json();
+  return handleResponse(res);
 };
 
-export const getCustomers = async () => {
-  const res = await fetch(`${BASE_URL}/customers/`, {
-    headers: getHeaders(),
-  });
-  return res.json();
+export const getCustomers = async (page = 1, pageSize = 10) => {
+  try{
+  const res = await fetch(
+    `${BASE_URL}/customers/?page=${page}&page_size=${pageSize}`,
+    {
+      headers: getHeaders(),
+    }
+  );
+
+    return handleResponse(res);
+  }
+  catch (err) {
+      console.error("getJobs failed:", err);
+      return null;
+  }
+
 };
 
-export const getVehicles = async () => {
-  const res = await fetch(`${BASE_URL}/vehicles/`, {
-    headers: getHeaders(),
-  });
-  return res.json();
+export const getVehicles = async (page = 1, pageSize = 10) => {
+  const res = await fetch(
+    `${BASE_URL}/vehicles/?page=${page}&page_size=${pageSize}`,
+    {
+      headers: getHeaders(),
+    }
+  );
+
+  return handleResponse(res);
 };
 
 export const createVehicle = async (data) => {
@@ -74,7 +92,7 @@ export const createVehicle = async (data) => {
     headers: getHeaders(),
     body: JSON.stringify(data),
   });
-  return res.json();
+  return handleResponse(res);
 };
 
 export const createMechanic = async (data) => {
@@ -83,12 +101,29 @@ export const createMechanic = async (data) => {
     headers: getHeaders(),
     body: JSON.stringify(data),
   });
-  return res.json();
+  return handleResponse(res);
 };
 
-export const getMechanics = async () => {
-  const res = await fetch(`${BASE_URL}/mechanics/`, {
-    headers: getHeaders(),
-  });
-  return res.json();
+export const getMechanics = async (page = 1, pageSize = 10) => {
+  const res = await fetch(
+    `${BASE_URL}/mechanics/?page=${page}&page_size=${pageSize}`,
+    {
+      headers: getHeaders(),
+    }
+  );
+  return handleResponse(res);
+};
+
+const handleResponse = async (res) => {
+  if (res.status === 401 || res.status === 403) {
+   
+    localStorage.removeItem("token");
+
+    window.location.href = "/login"; // 🔥 redirect globally
+
+    return null;
+  }
+
+  const data = await res.json();
+  return res.ok ? data : Promise.reject(data);
 };

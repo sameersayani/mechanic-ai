@@ -3,6 +3,15 @@ import { getCustomers, getVehicles, getJobs } from "../api";
 import JobsChart from "../components/JobsChart";
 import RecentJobs from "../components/RecentJobs";
 
+// Helper: extract array + total from either response shape
+// Shape 1: plain array  → [...]
+// Shape 2: paginated    → { data: [...], total: N }
+const extractData = (res) => {
+  if (Array.isArray(res)) return { items: res, total: res.length };
+  if (Array.isArray(res?.data)) return { items: res.data, total: res.total ?? res.data.length };
+  return { items: [], total: 0 };
+};
+
 export default function Dashboard() {
   const [stats, setStats] = useState({
     customers: 0,
@@ -17,33 +26,45 @@ export default function Dashboard() {
     loadStats();
   }, []);
 
-const loadStats = async () => {
-  const c = await getCustomers();
-  const v = await getVehicles();
-  const j = await getJobs();
+  const loadStats = async () => {
+    try {
+      const [c, v, j] = await Promise.all([
+        getCustomers(),
+        getVehicles(),
+        getJobs(),
+      ]);
 
-  setStats({
-    customers: c.length || 0,
-    vehicles: v.length || 0,
-    jobs: j.length || 0,
-  });
+      const { items: customers, total: customerTotal } = extractData(c);
+      const { items: vehicles, total: vehicleTotal } = extractData(v);
+      const { items: jobsArray, total: jobTotal } = extractData(j);
 
-  const jobsArray = Array.isArray(j) ? j : [];
-  setJobs(jobsArray);
+      setStats({
+        customers: customerTotal,
+        vehicles: vehicleTotal,
+        jobs: jobTotal,
+      });
 
-const grouped = jobsArray.reduce((acc, job, index) => {
-  const key = "Day " + (index + 1);
-  acc[key] = (acc[key] || 0) + 1;
-  return acc;
-}, {});
+      setJobs(jobsArray);
 
-  const chart = Object.keys(grouped).map((k) => ({
-    date: k,
-    count: grouped[k],
-  }));
+      // Group jobs by their created date (or fall back to index)
+      const grouped = jobsArray.reduce((acc, job, index) => {
+        const key = job.created_at
+          ? new Date(job.created_at).toLocaleDateString()
+          : "Day " + (index + 1);
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      }, {});
 
-  setChartData(chart);
-};
+      const chart = Object.keys(grouped).map((k) => ({
+        date: k,
+        count: grouped[k],
+      }));
+
+      setChartData(chart);
+    } catch (err) {
+      console.error("Failed to load dashboard stats:", err);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -89,31 +110,27 @@ const grouped = jobsArray.reduce((acc, job, index) => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <JobsChart data={chartData} />
-      <RecentJobs jobs={jobs} />
-    </div>
+        <JobsChart data={chartData} />
+        <RecentJobs jobs={jobs} />
+      </div>
 
       {/* RECENT ACTIVITY */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-md">
         <h2 className="text-lg font-semibold mb-3">Recent Activity</h2>
 
         <div className="space-y-3 text-sm">
-
           <div className="flex justify-between">
             <span>New job created</span>
             <span className="text-gray-400">2 mins ago</span>
           </div>
-
           <div className="flex justify-between">
             <span>Vehicle added</span>
             <span className="text-gray-400">10 mins ago</span>
           </div>
-
           <div className="flex justify-between">
             <span>Customer registered</span>
             <span className="text-gray-400">1 hour ago</span>
           </div>
-
         </div>
       </div>
 

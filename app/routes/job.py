@@ -1,4 +1,5 @@
 from fastapi import APIRouter
+from fastapi.params import Query
 from app.db import get_connection
 from app.dependencies import get_current_user
 from fastapi import Depends
@@ -30,10 +31,50 @@ def create_job(data: dict, user_id: int = Depends(get_current_user)):
 
     return {"id": jid}
 
-@router.get("/")
-def get_jobs(user_id: int = Depends(get_current_user)):
+@router.put("/{job_id}/")
+def update_job(job_id: int, data: dict, user_id: int = Depends(get_current_user)):
     conn = get_connection()
     cur = conn.cursor()
+
+    # Build dynamic SET clause
+    set_clauses = []
+    values = []
+    for key in ["issue_description", "status", "assigned_mechanic"]:
+        if key in data:
+            set_clauses.append(f"{key} = %s")
+            values.append(data[key])
+
+    if not set_clauses:
+        return {"error": "No valid fields to update"}
+
+    values.append(job_id)
+    values.append(user_id)
+
+    query = f"UPDATE jobs SET {', '.join(set_clauses)} WHERE id = %s AND user_id = %s"
+    cur.execute(query, tuple(values))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return {"message": "Job updated successfully"}
+
+@router.get("/")
+def get_jobs(
+    user_id: int = Depends(get_current_user),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=100)):
+    offset = (page - 1) * page_size
+
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute(
+        "SELECT COUNT(*) FROM jobs WHERE user_id=%s",
+        (user_id,)
+    )
+
+    total = cur.fetchone()[0]
 
     cur.execute("""
         SELECT j.id, j.issue_description,
@@ -45,7 +86,8 @@ def get_jobs(user_id: int = Depends(get_current_user)):
         LEFT JOIN customers c ON v.customer_id = c.id
         WHERE j.user_id = %s
         ORDER BY j.id DESC
-    """, (user_id,))
+        LIMIT %s OFFSET %s
+    """, (user_id, page_size, offset))
 
     rows = cur.fetchall()
 
@@ -60,4 +102,4 @@ def get_jobs(user_id: int = Depends(get_current_user)):
         for r in rows
     ]
 
-    return result
+    return {"data": result, "total": total}

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { createJob, getCustomers, getVehicles, getMechanics } from "../api";
 import { toast } from "react-toastify";
 
-export default function JobForm() {
+export default function JobForm({ onJobAdded }) {
   const [customers, setCustomers] = useState([]);
   const [vehicles, setVehicles] = useState([]);
   const [mechanics, setMechanics] = useState([]);
@@ -16,15 +16,19 @@ export default function JobForm() {
     loadData();
   }, []);
 
-  const loadData = async () => {
-    const c = await getCustomers();
-    const v = await getVehicles();
-    const m = await getMechanics();
+const loadData = async () => {
+  const c = await getCustomers();
+  const v = await getVehicles();
+  const m = await getMechanics();
 
-    setCustomers(c);
-    setVehicles(v);
-    setMechanics(m);
-  };
+  console.log("Customers:", c);
+  console.log("Vehicles:", v);
+  console.log("Mechanics:", m);
+
+  setCustomers(Array.isArray(c) ? c : c?.data || []);
+  setVehicles(Array.isArray(v) ? v : v?.data || []);
+  setMechanics(Array.isArray(m) ? m : m?.data || []);
+};
 
   const handleSubmit = async () => {
     if (!form.vehicle_id) {
@@ -39,6 +43,7 @@ export default function JobForm() {
     });
 
     if (res.id) {
+      onJobAdded?.();
       toast.success("Job created");
     }
   };
@@ -49,15 +54,14 @@ export default function JobForm() {
       <select
         className="input"
         onChange={(e) => {
-        console.log("Selected:", e.target.value);
         setForm({ ...form, customer_id: e.target.value });
       }}
       >
         <option>Select Customer</option>
-        {customers.map((c) => (
-          <option key={c.id} value={c.id}>
+        {(Array.isArray(customers) ? customers : []).map((c) => (
+            <option key={c.id} value={c.id}>
             {c.name}
-          </option>
+            </option>
         ))}
       </select>
 
@@ -88,7 +92,7 @@ export default function JobForm() {
       >
         <option value="">Select Mechanic</option>
 
-        {mechanics.map((m) => (
+        {(Array.isArray(mechanics) ? mechanics : []).map((m) => (
           <option key={m.id} value={m.id}>
             {m.name}
           </option>

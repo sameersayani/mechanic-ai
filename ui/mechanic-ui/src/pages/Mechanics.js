@@ -5,6 +5,7 @@ import MechanicList from "../components/MechanicList";
 
 export default function Mechanics() {
     const [mechanics, setMechanics] = useState([]);
+    const [refreshMechanics, setRefreshMechanics] = useState(0);
     const loadMechanics = async () => {
     const data = await getMechanics();
     setMechanics(Array.isArray(data) ? data : []);
@@ -12,14 +13,13 @@ export default function Mechanics() {
 
   useEffect(() => {
     loadMechanics();
-  }, []);
-
+  }, [refreshMechanics]);
     
   return (
     <div>
       <h1 className="text-xl font-bold mb-4">Mechanics</h1>
-      <MechanicForm onSuccess={loadMechanics} />
-      <MechanicList mechanics={mechanics} />
+      <MechanicForm onSuccess={() => setRefreshMechanics((n) => n + 1)} />
+      <MechanicList mechanics={mechanics} refreshTrigger={refreshMechanics} />
     </div>
   );
 }

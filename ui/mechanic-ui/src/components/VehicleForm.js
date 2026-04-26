@@ -31,7 +31,16 @@ export default function VehicleForm({ onVehicleAdded }) {
       toast.error("Select customer");
       return;
     }
-
+       if (!form.make.trim()) {
+          toast.error("Vehicle make is required");
+          return;
+        }
+    
+        if (!form.model.trim()) {
+          toast.error("Vehicle model is required");
+          return;
+        }
+    
     try {
       const res = await createVehicle(form);
 

@@ -121,6 +121,31 @@ export const getMechanics = async (page = 1, pageSize = 10) => {
   return handleResponse(res);
 };
 
+export const createInvoice = async (data) => {
+  const res = await fetch(`${BASE_URL}/invoices/`, {
+    method: "POST",
+    headers: { ...getHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  return handleResponse(res);
+};
+
+export const getInvoiceByJobId = async (jobId) => {
+  const res = await fetch(`${BASE_URL}/invoices/job/${jobId}`, {
+    headers: getHeaders(),
+  });
+  return handleResponse(res);
+};
+
+export const updateInvoiceStatus = async (invoiceId, status) => {
+  const res = await fetch(`${BASE_URL}/invoices/${invoiceId}/status`, {
+    method: "PATCH",
+    headers: { ...getHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ payment_status: status }),
+  });
+  return handleResponse(res);
+};
+
 const handleResponse = async (res) => {
   if (res.status === 401 || res.status === 403) {
    

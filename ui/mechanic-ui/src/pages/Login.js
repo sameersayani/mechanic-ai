@@ -15,6 +15,7 @@ export default function Login() {
 
     if (data.token) {
       localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify({ id: data.user_id, email: data.email }));
       window.location.href = "/";
     } else {
       toast.error("Invalid email or password");

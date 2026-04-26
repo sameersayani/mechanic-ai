@@ -9,8 +9,13 @@ export default function MechanicForm({ onSuccess }) {
   });
 
   const handleSubmit = async () => {
-    if (!form.name) {
-      toast.error("Name required");
+    if (!form.name.trim()) {
+      toast.error("Mechanic name is required");
+      return;
+    }
+
+    if (!form.phone.trim()) {
+      toast.error("Phone number is required");
       return;
     }
 
@@ -32,18 +37,14 @@ export default function MechanicForm({ onSuccess }) {
         className="input"
         placeholder="Mechanic Name"
         value={form.name}
-        onChange={(e) =>
-          setForm({ ...form, name: e.target.value })
-        }
+        onChange={(e) => setForm({ ...form, name: e.target.value })}
       />
 
       <input
         className="input"
         placeholder="Phone"
         value={form.phone}
-        onChange={(e) =>
-          setForm({ ...form, phone: e.target.value })
-        }
+        onChange={(e) => setForm({ ...form, phone: e.target.value })}
       />
 
       <button onClick={handleSubmit} className="btn">

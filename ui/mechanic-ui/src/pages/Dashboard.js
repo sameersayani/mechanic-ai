@@ -33,7 +33,7 @@ export default function Dashboard() {
       const [c, v, j] = await Promise.all([
         getCustomers(),
         getVehicles(),
-        getPendingJobs(),
+        getPendingJobs(1, 1000), // fetch all jobs for accurate chart grouping
       ]);
 
       const { items: customers, total: customerTotal } = extractData(c);
@@ -48,7 +48,6 @@ export default function Dashboard() {
 
       setJobs(jobsArray);
 
-      // Group jobs by their created date (or fall back to index)
       const grouped = jobsArray.reduce((acc, job, index) => {
         const key = job.created_at
           ? new Date(job.created_at).toLocaleDateString()

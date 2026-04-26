@@ -5,6 +5,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.routes import ai
 from app.routes import auth
 from app.routes import mechanic
+from app.routes import invoice
+
 app = FastAPI()
 
 @app.on_event("startup")
@@ -23,6 +25,7 @@ app.include_router(job.router)
 app.include_router(ai.router)
 app.include_router(auth.router)
 app.include_router(mechanic.router)
+app.include_router(invoice.router)
 
 @app.get("/")
 def root():

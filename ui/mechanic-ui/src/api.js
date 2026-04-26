@@ -55,11 +55,11 @@ export const getPendingJobs = async () => {
   return handleResponse(res);
 }
 
-export const diagnoseIssue = async (issue, currency = "AUD") => {
+export const diagnoseIssue = async ({ issue, car, model, currency = "AUD", country = "Australia", vat = 10.0 }) => {
   const res = await fetch(`${BASE_URL}/ai/diagnose`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ issue, currency }),
+    body: JSON.stringify({ issue, car, model, currency, country, vat }),
   });
   return handleResponse(res);
 };

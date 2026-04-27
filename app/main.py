@@ -6,6 +6,7 @@ from app.routes import ai
 from app.routes import auth
 from app.routes import mechanic
 from app.routes import invoice
+from app.routes import business
 
 app = FastAPI()
 
@@ -19,6 +20,8 @@ app.add_middleware(
     allow_methods=["*"], 
     allow_headers=["*"],
     allow_credentials=True)
+
+app.include_router(business.router)
 app.include_router(customer.router)
 app.include_router(vehicle.router)
 app.include_router(job.router)

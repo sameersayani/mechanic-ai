@@ -146,6 +146,29 @@ export const updateInvoiceStatus = async (invoiceId, status) => {
   return handleResponse(res);
 };
 
+export const createBusiness = async (data) => {
+  const res = await fetch(`${BASE_URL}/business/`, {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleResponse(res);
+};
+
+export const getBusiness = async (business_id) => {
+  const res = await fetch(`${BASE_URL}/business/${business_id}`, {
+    headers: getHeaders(),
+  });
+  return handleResponse(res);
+};
+
+export const getBusinesses = async () => {
+  const res = await fetch(`${BASE_URL}/business/`, {
+    headers: getHeaders(),
+  });
+  return handleResponse(res);
+};
+
 const handleResponse = async (res) => {
   if (res.status === 401 || res.status === 403) {
    

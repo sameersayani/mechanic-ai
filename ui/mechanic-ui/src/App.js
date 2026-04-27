@@ -12,6 +12,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Vehicles from "./pages/Vehicles";
 import Mechanics from "./pages/Mechanics";
+import Business from "./pages/Business";
 
 function App() {
   return (
@@ -38,6 +39,7 @@ function App() {
           }
         >
           <Route index element={<Dashboard />} />
+          <Route path="businesses" element={<Business />} />
           <Route path="customers" element={<Customers />} />
           <Route path="vehicles" element={<Vehicles />} />
           <Route path="jobs" element={<Jobs />} />

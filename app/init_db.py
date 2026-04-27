@@ -78,6 +78,21 @@ def init_db():
     cur.execute("ALTER TABLE jobs DROP COLUMN IF EXISTS assigned_mechanic;")
     cur.execute("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS mechanic_id INT REFERENCES mechanics(id);")
 
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS public.business
+    (
+        id SERIAL,
+        name TEXT NOT NULL,
+        address TEXT,
+        phone TEXT NOT NULL,
+        email TEXT,
+        website TEXT,
+        user_id INT,
+        is_active boolean DEFAULT true,
+        CONSTRAINT business_pkey PRIMARY KEY (id, name)
+    );
+    """)
+
     conn.commit()
     cur.close()
     conn.close()

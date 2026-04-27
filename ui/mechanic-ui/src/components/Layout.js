@@ -30,6 +30,11 @@ export default function Layout() {
               </Link>
             </li>
             <li>
+              <Link to="/businesses" className="block p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700">
+                Businesses
+              </Link>
+            </li>
+            <li>
               <Link
                 to="/customers"
                 className="block p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700"

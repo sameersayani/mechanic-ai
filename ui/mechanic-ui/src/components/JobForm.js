@@ -150,17 +150,48 @@ export default function JobForm({ onJobAdded, editJob, onEditDone }) {
         toast.error("Failed to update job");
       }
     } else {
-      // CREATE new job
-      const res = await createJob({
-        vehicle_id: form.vehicle_id,
-        issue_description: form.issue,
-        mechanic_id: form.mechanic_id,
-      });
-      if (res.id) {
-        onJobAdded?.();
-        toast.success("Job created");
-        setForm(EMPTY_FORM);
+      // Open modal to collect invoice details before creating job + invoice
+      setAiResult(null);
+      // Try to pre-fill from last draft saved in localStorage
+      try {
+        const draft = JSON.parse(localStorage.getItem("lastInvoiceDraft"));
+        if (draft) {
+          setEditableBill({
+            summary: form.issue || draft.summary || "",
+            parts_cost: draft.parts_cost ?? 0,
+            labor_cost: draft.labor_cost ?? 0,
+            total_amount: draft.total_amount ?? 0,
+            vat_amount: draft.vat_amount ?? 0,
+            vat_rate: draft.vat_rate ?? 10.0,
+            currency: draft.currency ?? "AUD",
+            final_bill_amount: draft.final_bill_amount ?? 0,
+          });
+        } else {
+          setEditableBill({
+            summary: form.issue || "",
+            parts_cost: 0,
+            labor_cost: 0,
+            total_amount: 0,
+            vat_amount: 0,
+            vat_rate: 10.0,
+            currency: "AUD",
+            final_bill_amount: 0,
+          });
+        }
+      } catch {
+        setEditableBill({
+          summary: form.issue || "",
+          parts_cost: 0,
+          labor_cost: 0,
+          total_amount: 0,
+          vat_amount: 0,
+          vat_rate: 10.0,
+          currency: "AUD",
+          final_bill_amount: 0,
+        });
       }
+
+      setShowModal(true);
     }
   };
 
@@ -216,7 +247,7 @@ export default function JobForm({ onJobAdded, editJob, onEditDone }) {
   };
 
   const handleAcceptAndInvoice = async () => {
-    if (!aiResult || invoiceLoading) return;
+    if (!editableBill || invoiceLoading) return;
     setInvoiceDone(true);
 
     const user_id = getUserIdFromToken();
@@ -228,7 +259,7 @@ export default function JobForm({ onJobAdded, editJob, onEditDone }) {
 
     setInvoiceLoading(true);
     try {
-      // Step 1: Create job (AI path always creates a new job)
+      // Step 1: Create job (both AI and manual create paths create a new job)
       const jobRes = await createJob({
         vehicle_id: form.vehicle_id,
         issue_description: form.issue,
@@ -308,6 +339,56 @@ export default function JobForm({ onJobAdded, editJob, onEditDone }) {
     }
     if (businesses.length === 1) setSelectedBusinessId(String(businesses[0].id));
   }, [showModal, businesses]);
+
+  // When modal opens, if editableBill isn't already set (AI path sets it),
+  // try to prefill from the last saved draft in localStorage.
+  useEffect(() => {
+    if (!showModal) return;
+    if (editableBill) return; // already set by AI flow
+
+    try {
+      const draft = JSON.parse(localStorage.getItem("lastInvoiceDraft"));
+      if (draft) {
+        setEditableBill({
+          summary: draft.summary ?? form.issue ?? "",
+          parts_cost: draft.parts_cost ?? 0,
+          labor_cost: draft.labor_cost ?? 0,
+          total_amount: draft.total_amount ?? 0,
+          vat_amount: draft.vat_amount ?? 0,
+          vat_rate: draft.vat_rate ?? 10.0,
+          currency: draft.currency ?? "AUD",
+          final_bill_amount: draft.final_bill_amount ?? 0,
+        });
+      } else {
+        setEditableBill({
+          summary: form.issue || "",
+          parts_cost: 0,
+          labor_cost: 0,
+          total_amount: 0,
+          vat_amount: 0,
+          vat_rate: 10.0,
+          currency: "AUD",
+          final_bill_amount: 0,
+        });
+      }
+    } catch {
+      setEditableBill({
+        summary: form.issue || "",
+        parts_cost: 0,
+        labor_cost: 0,
+        total_amount: 0,
+        vat_amount: 0,
+        vat_rate: 10.0,
+        currency: "AUD",
+        final_bill_amount: 0,
+      });
+    }
+  }, [showModal]);
+
+  const selectedVehicle = vehicles.find((v) => String(v.id) === String(form.vehicle_id));
+  const carLabel = aiResult?.car ?? selectedVehicle?.make ?? "Unknown";
+  const modelLabel = aiResult?.model ?? selectedVehicle?.model ?? "Unknown";
+  const issueLabel = (aiResult?.issue ?? form.issue) || editableBill?.summary || "-";
 
   return (
     <>
@@ -428,8 +509,8 @@ export default function JobForm({ onJobAdded, editJob, onEditDone }) {
         </div>
       </div>
 
-      {/* AI Result Modal */}
-      {showModal && aiResult && (
+      {/* AI / Manual Invoice Modal */}
+      {showModal && (aiResult || editableBill) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 px-4">
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
 
@@ -452,38 +533,40 @@ export default function JobForm({ onJobAdded, editJob, onEditDone }) {
               {/* Car | Model | Issue */}
               <div className="flex flex-wrap gap-2">
                 <span className="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 px-3 py-1 rounded-full text-sm font-semibold">
-                  🚗 {aiResult.car}
+                  🚗 {carLabel}
                 </span>
                 <span className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 px-3 py-1 rounded-full text-sm font-semibold">
-                  📋 {aiResult.model}
+                  📋 {modelLabel}
                 </span>
                 <span className="bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300 px-3 py-1 rounded-full text-sm font-semibold">
-                  🔧 {aiResult.issue}
+                  🔧 {issueLabel}
                 </span>
               </div>
 
-              {/* Solution */}
-              <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 space-y-3">
-                <h3 className="font-bold text-base flex items-center gap-2">
-                  <span>🛠️</span> Solution
-                </h3>
-                <p className="text-sm text-gray-700 dark:text-gray-300">
-                  <span className="font-semibold">Repair / Replacement: </span>
-                  {aiResult.solution.repair_or_replacement}
-                </p>
-                <div>
-                  <p className="font-semibold text-sm mb-1">Parts Replaced:</p>
-                  <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 space-y-1">
-                    {aiResult.solution.parts_replaced.map((p, i) => <li key={i}>{p}</li>)}
-                  </ul>
+              {/* Solution (only when AI provided one) */}
+              {aiResult && (
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 space-y-3">
+                  <h3 className="font-bold text-base flex items-center gap-2">
+                    <span>🛠️</span> Solution
+                  </h3>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    <span className="font-semibold">Repair / Replacement: </span>
+                    {aiResult.solution.repair_or_replacement}
+                  </p>
+                  <div>
+                    <p className="font-semibold text-sm mb-1">Parts Replaced:</p>
+                    <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 space-y-1">
+                      {aiResult.solution.parts_replaced.map((p, i) => <li key={i}>{p}</li>)}
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm mb-1">Services Done:</p>
+                    <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 space-y-1">
+                      {aiResult.solution.services_done.map((s, i) => <li key={i}>{s}</li>)}
+                    </ul>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-semibold text-sm mb-1">Services Done:</p>
-                  <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300 space-y-1">
-                    {aiResult.solution.services_done.map((s, i) => <li key={i}>{s}</li>)}
-                  </ul>
-                </div>
-              </div>
+              )}
 
               {/* Editable Summary */}
               {editableBill && (
@@ -510,48 +593,66 @@ export default function JobForm({ onJobAdded, editJob, onEditDone }) {
                   <p className="text-xs text-gray-400 mb-1">Auto-filled by AI — you can edit before saving</p>
 
                   <div className="flex items-center justify-between text-sm gap-3">
-                    <label className="text-gray-600 dark:text-gray-400 w-36 shrink-0">Parts Replaced ({aiResult.bill.currency})</label>
+                    <label className="text-gray-600 dark:text-gray-400 w-36 shrink-0">Parts Replaced ({(editableBill?.currency ?? aiResult?.bill?.currency) || 'AUD'})</label>
                     <input
                       type="number"
                       className="input text-sm text-right"
                       value={editableBill.parts_cost}
                       onChange={(e) => {
                         const parts = parseFloat(e.target.value) || 0;
-                        const total = parts + editableBill.labor_cost;
-                        const vat = parseFloat((total * aiResult.bill.vat_rate / 100).toFixed(2));
+                        const total = parts + (editableBill.labor_cost || 0);
+                        const vatRate = Number(editableBill.vat_rate || 0);
+                        const vat = parseFloat((total * vatRate / 100).toFixed(2));
                         setEditableBill({ ...editableBill, parts_cost: parts, total_amount: total, vat_amount: vat, final_bill_amount: parseFloat((total + vat).toFixed(2)) });
                       }}
                     />
                   </div>
 
                   <div className="flex items-center justify-between text-sm gap-3">
-                    <label className="text-gray-600 dark:text-gray-400 w-36 shrink-0">Repair &amp; Service ({aiResult.bill.currency})</label>
+                    <label className="text-gray-600 dark:text-gray-400 w-36 shrink-0">Repair &amp; Service ({(editableBill?.currency ?? aiResult?.bill?.currency) || 'AUD'})</label>
                     <input
                       type="number"
                       className="input text-sm text-right"
                       value={editableBill.labor_cost}
                       onChange={(e) => {
                         const labor = parseFloat(e.target.value) || 0;
-                        const total = editableBill.parts_cost + labor;
-                        const vat = parseFloat((total * aiResult.bill.vat_rate / 100).toFixed(2));
+                        const parts = Number(editableBill.parts_cost || 0);
+                        const total = parts + labor;
+                        const vatRate = Number(editableBill.vat_rate || 0);
+                        const vat = parseFloat((total * vatRate / 100).toFixed(2));
                         setEditableBill({ ...editableBill, labor_cost: labor, total_amount: total, vat_amount: vat, final_bill_amount: parseFloat((total + vat).toFixed(2)) });
+                      }}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between text-sm gap-3">
+                    <label className="text-gray-600 dark:text-gray-400 w-36 shrink-0">VAT Rate (%)</label>
+                    <input
+                      type="number"
+                      className="input text-sm text-right"
+                      value={editableBill.vat_rate}
+                      onChange={(e) => {
+                        const rate = parseFloat(e.target.value) || 0;
+                        const total = Number(editableBill.parts_cost || 0) + Number(editableBill.labor_cost || 0);
+                        const vat = parseFloat((total * rate / 100).toFixed(2));
+                        setEditableBill({ ...editableBill, vat_rate: rate, vat_amount: vat, final_bill_amount: parseFloat((total + vat).toFixed(2)) });
                       }}
                     />
                   </div>
 
                   <div className="flex justify-between text-sm border-t border-gray-200 dark:border-gray-700 pt-2">
                     <span className="text-gray-600 dark:text-gray-400">Overall Amount</span>
-                    <span className="font-medium">{aiResult.bill.currency} {editableBill.total_amount.toFixed(2)}</span>
+                    <span className="font-medium">{(editableBill?.currency ?? aiResult?.bill?.currency) || 'AUD'} {Number(editableBill.total_amount || 0).toFixed(2)}</span>
                   </div>
 
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">VAT ({aiResult.bill.vat_rate}% — {aiResult.bill.country})</span>
-                    <span className="font-medium text-orange-500">{aiResult.bill.currency} {editableBill.vat_amount.toFixed(2)}</span>
+                    <span className="text-gray-600 dark:text-gray-400">VAT ({Number(editableBill.vat_rate || aiResult?.bill?.vat_rate || 0)}%{aiResult?.bill?.country ? ` — ${aiResult.bill.country}` : ''})</span>
+                    <span className="font-medium text-orange-500">{(editableBill?.currency ?? aiResult?.bill?.currency) || 'AUD'} {Number(editableBill.vat_amount || 0).toFixed(2)}</span>
                   </div>
 
                   <div className="flex justify-between text-base font-bold border-t border-gray-300 dark:border-gray-600 pt-2">
                     <span>Final Bill Amount</span>
-                    <span className="text-green-600 dark:text-green-400">{aiResult.bill.currency} {editableBill.final_bill_amount.toFixed(2)}</span>
+                    <span className="text-green-600 dark:text-green-400">{(editableBill?.currency ?? aiResult?.bill?.currency) || 'AUD'} {Number(editableBill.final_bill_amount || 0).toFixed(2)}</span>
                   </div>
                 </div>
               )}

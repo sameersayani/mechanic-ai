@@ -6,6 +6,7 @@ export default function MechanicForm({ onSuccess }) {
   const [form, setForm] = useState({
     name: "",
     phone: "",
+    is_active: true,
   });
 
   const handleSubmit = async () => {
@@ -23,7 +24,7 @@ export default function MechanicForm({ onSuccess }) {
 
     if (res.id) {
       toast.success("Mechanic added");
-      setForm({ name: "", phone: "" });
+      setForm({ name: "", phone: "", is_active: true });
       onSuccess();
     } else {
       toast.error("Failed to add mechanic");
@@ -46,6 +47,30 @@ export default function MechanicForm({ onSuccess }) {
         value={form.phone}
         onChange={(e) => setForm({ ...form, phone: e.target.value })}
       />
+
+      {/* Active / Inactive Toggle */}
+      <div className="flex items-center gap-3 pt-1">
+        <button
+          type="button"
+          onClick={() => setForm((prev) => ({ ...prev, is_active: !prev.is_active }))}
+          className={`relative inline-flex items-center w-12 h-6 rounded-full transition-colors duration-300 focus:outline-none ${
+            form.is_active ? "bg-green-500" : "bg-gray-300"
+          }`}
+        >
+          <span
+            className={`inline-block w-5 h-5 bg-white rounded-full shadow transform transition-transform duration-300 ${
+              form.is_active ? "translate-x-6" : "translate-x-1"
+            }`}
+          />
+        </button>
+        <span
+          className={`text-xs font-semibold px-2 py-1 rounded ${
+            form.is_active ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-500"
+          }`}
+        >
+          {form.is_active ? "Active" : "Inactive"}
+        </span>
+      </div>
 
       <button onClick={handleSubmit} className="btn">
         Add Mechanic

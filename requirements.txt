@@ -3,3 +3,7 @@ uvicorn
 psycopg2-binary
 python-dotenv
 requests
+python-jose[cryptography]
+openai
+passlib[bcrypt]
+python-multipart

@@ -47,5 +47,5 @@
     "postcss": "^8.5.8",
     "tailwindcss": "^3.4.19"
   },
-  "proxy": "http://localhost:8000"
+  "proxy": "http://localhost:8001"
 }

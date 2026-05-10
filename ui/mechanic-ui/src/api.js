@@ -1,4 +1,4 @@
-const BASE_URL = "http://localhost:8000";
+const BASE_URL = "http://localhost:8001";
 
 export const getHeaders = () => {
   const token = localStorage.getItem("token");
@@ -110,6 +110,16 @@ export const createMechanic = async (data) => {
   });
   return handleResponse(res);
 };
+
+export const updateMechanic = async (id, data) => {
+  const res = await fetch(`${BASE_URL}/mechanics/${id}/`, {
+    method: "PUT",
+    headers: { ...getHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  return handleResponse(res);
+};
+
 
 export const getMechanics = async (page = 1, pageSize = 10) => {
   const res = await fetch(

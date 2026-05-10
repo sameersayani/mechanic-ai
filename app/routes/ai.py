@@ -10,7 +10,6 @@ api_key = os.getenv("OPENAI_API_KEY")
 
 router = APIRouter(prefix="/ai", tags=["AI"])
 
-client = OpenAI(api_key=api_key)
 
 DEFAULT_CURRENCY = "AUD"
 DEFAULT_COUNTRY = "Australia"
@@ -60,6 +59,9 @@ Rules:
 """
 
     try:
+        # Create client lazily to avoid network/blocking at import time
+        client = OpenAI(api_key=api_key)
+
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[

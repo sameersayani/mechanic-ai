@@ -1,15 +1,13 @@
 from app.db import get_connection
-
 def init_db():
-    conn = get_connection()
-    cur = conn.cursor()
+    try:
+        conn = get_connection()
+    except Exception as e:
+        # Fail fast but don't block application startup; log the error.
+        print(f"init_db: could not connect to database: {e}")
+        return
 
-    cur.execute("""CREATE TABLE IF NOT EXISTS users (
-    id SERIAL PRIMARY KEY,
-    email VARCHAR(100) UNIQUE,
-    password VARCHAR(255)
-    );
-    """)
+    cur = conn.cursor()
 
     cur.execute("""
     CREATE TABLE IF NOT EXISTS customers (
@@ -77,6 +75,7 @@ def init_db():
     cur.execute("ALTER TABLE invoices ADD COLUMN IF NOT EXISTS user_id INT;")
     cur.execute("ALTER TABLE jobs DROP COLUMN IF EXISTS assigned_mechanic;")
     cur.execute("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS mechanic_id INT REFERENCES mechanics(id);")
+    cur.execute("ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;")
 
     cur.execute("""
     CREATE TABLE IF NOT EXISTS public.business

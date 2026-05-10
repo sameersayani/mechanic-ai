@@ -25,6 +25,33 @@ def create_mechanic(data: dict, user_id: int = Depends(get_current_user)):
 
     return {"id": mid}
 
+@router.put("/{mechanic_id}/")
+def update_mechanic(mechanic_id: int, data: dict, user_id: int = Depends(get_current_user)):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    set_clauses = []
+    values = []
+    for key in ["name", "phone", "is_active"]:
+        if key in data:
+            set_clauses.append(f"{key} = %s")
+            values.append(data[key])
+
+    if not set_clauses:
+        return {"error": "No valid fields to update"}
+
+    # Only append mechanic_id and user_id — NOT is_active again
+    values.append(mechanic_id)
+    values.append(user_id)
+
+    query = f"UPDATE mechanics SET {', '.join(set_clauses)} WHERE id = %s AND user_id = %s"
+    cur.execute(query, tuple(values))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return {"message": "Mechanic updated successfully"}
 
 @router.get("/")
 def get_mechanics(

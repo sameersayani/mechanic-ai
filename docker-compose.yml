@@ -22,7 +22,7 @@ services:
     depends_on:
       - db
     ports:
-      - "8000:8000"
+      - "8001:8001"
     environment:
       DB_HOST: db
       DB_PORT: 5432

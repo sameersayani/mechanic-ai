@@ -39,7 +39,8 @@ def update_job(job_id: int, data: dict, user_id: int = Depends(get_current_user)
     # Build dynamic SET clause
     set_clauses = []
     values = []
-    for key in ["issue_description", "status", "assigned_mechanic"]:
+    # Allow updating issue_description, status, vehicle_id, and mechanic_id
+    for key in ["issue_description", "status", "vehicle_id", "mechanic_id"]:
         if key in data:
             set_clauses.append(f"{key} = %s")
             values.append(data[key])

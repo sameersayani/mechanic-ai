@@ -1,24 +1,25 @@
 import { useEffect, useState } from "react";
-import { createJob, getCustomers, getVehicles, getMechanics, diagnoseIssue, createInvoice } from "../api";
+import { createJob, updateJob, getCustomers, getVehicles, getMechanics, diagnoseIssue, createInvoice, getJobById, getBusinesses } from "../api";
 import { toast } from "react-toastify";
 
-export default function JobForm({ onJobAdded }) {
+const EMPTY_FORM = { customer_id: "", vehicle_id: "", mechanic_id: "", issue: "" };
+
+export default function JobForm({ onJobAdded, editJob, onEditDone }) {
   const [customers, setCustomers] = useState([]);
   const [vehicles, setVehicles] = useState([]);
   const [mechanics, setMechanics] = useState([]);
-  const [form, setForm] = useState({
-    customer_id: "",
-    vehicle_id: "",
-    mechanic_id: "",
-    issue: "",
-  });
+  const [businesses, setBusinesses] = useState([]);
+  const [form, setForm] = useState(EMPTY_FORM);
 
   const [aiLoading, setAiLoading] = useState(false);
   const [invoiceLoading, setInvoiceLoading] = useState(false);
   const [invoiceDone, setInvoiceDone] = useState(false);
   const [aiResult, setAiResult] = useState(null);
   const [editableBill, setEditableBill] = useState(null);
+  const [selectedBusinessId, setSelectedBusinessId] = useState("");
   const [showModal, setShowModal] = useState(false);
+
+  const isEditMode = Boolean(editJob);
 
   // Decode user_id directly from JWT — no separate localStorage key needed
   const getUserIdFromToken = () => {
@@ -36,31 +37,137 @@ export default function JobForm({ onJobAdded }) {
     loadData();
   }, []);
 
+  // Pre-fill form when `editJob` changes OR when dropdown data finishes loading.
+  // Fetch full job from API to ensure we have IDs and the most up-to-date values,
+  // then resolve IDs against the loaded dropdown lists.
+  useEffect(() => {
+    let cancelled = false;
+
+    const resolveAndSet = (jobObj) => {
+      if (!jobObj) {
+        setForm(EMPTY_FORM);
+        return;
+      }
+
+      let vehicle_id = jobObj.vehicle_id ? String(jobObj.vehicle_id) : "";
+      let customer_id = jobObj.customer_id ? String(jobObj.customer_id) : "";
+
+      if (!vehicle_id && jobObj.vehicle_name && vehicles.length > 0) {
+        const matched = vehicles.find((v) => {
+          const full = `${v.make} ${v.model} ${v.year}`.toLowerCase();
+          return (
+            full === jobObj.vehicle_name.toLowerCase() ||
+            v.name?.toLowerCase() === jobObj.vehicle_name.toLowerCase()
+          );
+        });
+        if (matched) vehicle_id = String(matched.id);
+      }
+
+      if (!customer_id && vehicle_id && vehicles.length > 0) {
+        const v = vehicles.find((v) => String(v.id) === vehicle_id);
+        if (v?.customer_id) customer_id = String(v.customer_id);
+      }
+
+      let mechanic_id = jobObj.mechanic_id ? String(jobObj.mechanic_id) : "";
+      if (!mechanic_id && jobObj.mechanic_name && mechanics.length > 0) {
+        const matched = mechanics.find(
+          (m) => m.name?.toLowerCase() === jobObj.mechanic_name.toLowerCase()
+        );
+        if (matched) mechanic_id = String(matched.id);
+      }
+
+      setForm({
+        customer_id,
+        vehicle_id,
+        mechanic_id,
+        issue: jobObj.issue || jobObj.issue_description || "",
+      });
+    };
+
+    const fetchAndResolve = async () => {
+      if (!editJob) {
+        setForm(EMPTY_FORM);
+        return;
+      }
+
+      try {
+        // Try to fetch the authoritative job details from the API
+        const full = await getJobById(editJob.id);
+        if (cancelled) return;
+
+        // API might return wrapped payloads; normalize
+        const jobObj = Array.isArray(full)
+          ? full[0]
+          : full?.data || full;
+
+        resolveAndSet(jobObj || editJob);
+      } catch (err) {
+        // If the fetch fails, fall back to the `editJob` passed in
+        resolveAndSet(editJob);
+      }
+    };
+
+    fetchAndResolve();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [editJob, vehicles, mechanics]);
+
   const loadData = async () => {
     const c = await getCustomers();
     const v = await getVehicles();
     const m = await getMechanics();
+    const b = await getBusinesses();
     setCustomers(Array.isArray(c) ? c : c?.data || []);
     setVehicles(Array.isArray(v) ? v : v?.data || []);
     setMechanics(Array.isArray(m) ? m : m?.data || []);
+    setBusinesses(Array.isArray(b) ? b : b?.data || []);
   };
 
   const isFormValid = form.vehicle_id && form.issue.trim();
 
+  // ── Create or Update job (simple path, no AI invoice) ──────────────────
   const handleSubmit = async () => {
     if (!form.vehicle_id) { toast.error("Select vehicle"); return; }
 
-    const res = await createJob({
-      vehicle_id: form.vehicle_id,
-      issue_description: form.issue,
-      mechanic_id: form.mechanic_id,
-    });
-
-    if (res.id) {
-      onJobAdded?.();
-      toast.success("Job created");
-      setForm({ customer_id: "", vehicle_id: "", mechanic_id: "", issue: "" });
+    if (isEditMode) {
+      // UPDATE existing job
+      try {
+        const res = await updateJob(editJob.id, {
+          vehicle_id: form.vehicle_id,
+          issue_description: form.issue,
+          mechanic_id: form.mechanic_id,
+        });
+        if (res) {
+          toast.success("Job updated");
+          onEditDone?.();
+        } else {
+          toast.error("Failed to update job");
+        }
+      } catch (err) {
+        console.error(err);
+        toast.error("Failed to update job");
+      }
+    } else {
+      // CREATE new job
+      const res = await createJob({
+        vehicle_id: form.vehicle_id,
+        issue_description: form.issue,
+        mechanic_id: form.mechanic_id,
+      });
+      if (res.id) {
+        onJobAdded?.();
+        toast.success("Job created");
+        setForm(EMPTY_FORM);
+      }
     }
+  };
+
+  // Cancel edit — revert form and clear edit state
+  const handleCancelEdit = () => {
+    setForm(EMPTY_FORM);
+    onEditDone?.();
   };
 
   const handleAskAI = async () => {
@@ -95,6 +202,8 @@ export default function JobForm({ onJobAdded }) {
           labor_cost: res.bill.repair_and_service_cost,
           total_amount: res.bill.overall_amount,
           vat_amount: res.bill.vat_amount,
+          vat_rate: res.bill.vat_rate,
+          currency: res.bill.currency,
           final_bill_amount: res.bill.final_bill_amount,
         });
         setShowModal(true);
@@ -107,7 +216,7 @@ export default function JobForm({ onJobAdded }) {
   };
 
   const handleAcceptAndInvoice = async () => {
-    if (!aiResult || invoiceLoading) return; // prevent duplicate clicks
+    if (!aiResult || invoiceLoading) return;
     setInvoiceDone(true);
 
     const user_id = getUserIdFromToken();
@@ -119,7 +228,7 @@ export default function JobForm({ onJobAdded }) {
 
     setInvoiceLoading(true);
     try {
-      // Step 1: Create job
+      // Step 1: Create job (AI path always creates a new job)
       const jobRes = await createJob({
         vehicle_id: form.vehicle_id,
         issue_description: form.issue,
@@ -133,26 +242,50 @@ export default function JobForm({ onJobAdded }) {
       }
 
       // Step 2: Create invoice linked to job
+      if (!selectedBusinessId) {
+        toast.error("Select a business before creating invoice");
+        return;
+      }
+
+      // Ensure numeric VAT values are calculated and sent to backend
+      const parts = parseFloat(editableBill.parts_cost) || 0;
+      const labor = parseFloat(editableBill.labor_cost) || 0;
+      const subtotal = parts + labor;
+      const vatRate = Number(editableBill.vat_rate ?? aiResult?.bill?.vat_rate ?? 0);
+      const vatAmount = (editableBill.vat_amount !== undefined && editableBill.vat_amount !== null)
+        ? Number(editableBill.vat_amount)
+        : Math.round(subtotal * (vatRate / 100) * 100) / 100;
+      const totalAmount = Number(editableBill.final_bill_amount ?? subtotal + vatAmount);
+
       const invoicePayload = {
         job_id: jobRes.id,
-        parts_cost: editableBill.parts_cost,
-        labor_cost: editableBill.labor_cost,
-        total_amount: editableBill.final_bill_amount,
+        parts_cost: parts,
+        labor_cost: labor,
+        total_amount: totalAmount,
         payment_status: "unpaid",
         user_id,
         summary: editableBill.summary,
+        business_id: Number(selectedBusinessId),
+        vat_rate: vatRate,
+        vat_amount: vatAmount,
+        currency: editableBill.currency ?? aiResult?.bill?.currency ?? "AUD",
       };
 
       const invoiceRes = await createInvoice(invoicePayload);
 
       if (invoiceRes?.id) {
         toast.success("✅ Job created & Invoice generated!");
+        // remember last selected business for next time
+        try {
+          const bid = invoiceRes.business_id ?? invoicePayload.business_id;
+          if (bid) localStorage.setItem("lastBusinessId", String(bid));
+        } catch {}
         setShowModal(false);
         setAiResult(null);
         setEditableBill(null);
         setInvoiceDone(false);
-        setForm({ customer_id: "", vehicle_id: "", mechanic_id: "", issue: "" });
-        onJobAdded?.(); // 👈 triggers JobList refresh
+        setForm(EMPTY_FORM);
+        onJobAdded?.();
       } else {
         toast.error("Invoice generation failed");
       }
@@ -165,10 +298,32 @@ export default function JobForm({ onJobAdded }) {
     }
   };
 
+  // Default/select business when modal opens — prefer last used, then single business
+  useEffect(() => {
+    if (!showModal) return;
+    const last = localStorage.getItem("lastBusinessId");
+    if (last && businesses.find((b) => String(b.id) === String(last))) {
+      setSelectedBusinessId(String(last));
+      return;
+    }
+    if (businesses.length === 1) setSelectedBusinessId(String(businesses[0].id));
+  }, [showModal, businesses]);
+
   return (
     <>
       <div className="card p-4 space-y-3">
-        <h2 className="text-xl font-bold mb-2">Add Job</h2>
+
+        {/* Header — changes based on mode */}
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-xl font-bold">
+            {isEditMode ? `✏️ Edit Job #${editJob.id}` : "Add Job"}
+          </h2>
+          {isEditMode && (
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">
+              Editing
+            </span>
+          )}
+        </div>
 
         {/* Customer */}
         <select
@@ -186,15 +341,18 @@ export default function JobForm({ onJobAdded }) {
         <select
           className="input"
           value={form.vehicle_id}
-          disabled={!form.customer_id}
+          disabled={!form.customer_id && !isEditMode}
           onChange={(e) => setForm({ ...form, vehicle_id: e.target.value })}
         >
           <option value="">Select Vehicle</option>
-          {vehicles
-            .filter((v) => Number(v.customer_id) === Number(form.customer_id))
-            .map((v) => (
-              <option key={v.id} value={v.id}>{v.make} {v.model}</option>
-            ))}
+          {(form.customer_id
+            ? vehicles.filter((v) => Number(v.customer_id) === Number(form.customer_id))
+            : vehicles
+          ).map((v) => (
+            <option key={v.id} value={v.id}>
+              {v.make} {v.model}{v.year ? ` (${v.year})` : ""}
+            </option>
+          ))}
         </select>
 
         {/* Mechanic */}
@@ -213,43 +371,59 @@ export default function JobForm({ onJobAdded }) {
         <textarea
           className="input"
           placeholder="Describe the issue..."
-          value={form.issue}
           rows={3}
+          value={form.issue}
           onChange={(e) => setForm({ ...form, issue: e.target.value })}
         />
 
-        {/* Buttons Row */}
-        <div className="flex items-center gap-3">
+        {/* Action Buttons */}
+        <div className="flex flex-wrap gap-2 pt-1">
 
-          {/* Create Job */}
+          {/* Create / Update Job */}
           <button
             onClick={handleSubmit}
             disabled={!isFormValid}
-            className={`btn ${!isFormValid ? "opacity-40 cursor-not-allowed" : ""}`}
+            className={`px-4 py-2 rounded-lg font-semibold text-sm text-white transition-all duration-200
+              ${isEditMode
+                ? "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
+                : "bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600"
+              } shadow-lg ${!isFormValid ? "opacity-50 cursor-not-allowed" : "hover:scale-105"}`}
           >
-            Create Job
+            {isEditMode ? "💾 Update Job" : "Create Job"}
           </button>
 
-          {/* Ask AI */}
-          <button
-            onClick={handleAskAI}
-            disabled={aiLoading || !form.issue.trim()}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm text-white transition-all duration-200
-              bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-lg
-              ${(aiLoading || !form.issue.trim()) ? "opacity-50 cursor-not-allowed" : "hover:scale-105"}`}
-          >
-            {aiLoading ? (
-              <>
-                <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                </svg>
-                Diagnosing...
-              </>
-            ) : (
-              <><span>🤖</span> Ask AI</>
-            )}
-          </button>
+          {/* Cancel Edit — only shown in edit mode */}
+          {isEditMode && (
+            <button
+              onClick={handleCancelEdit}
+              className="px-4 py-2 rounded-lg font-semibold text-sm bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-all"
+            >
+              Cancel
+            </button>
+          )}
+
+          {/* Ask AI — only shown in create mode */}
+          {!isEditMode && (
+            <button
+              onClick={handleAskAI}
+              disabled={aiLoading || !form.issue.trim()}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm text-white transition-all duration-200
+                bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-lg
+                ${(aiLoading || !form.issue.trim()) ? "opacity-50 cursor-not-allowed" : "hover:scale-105"}`}
+            >
+              {aiLoading ? (
+                <>
+                  <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                  </svg>
+                  Diagnosing...
+                </>
+              ) : (
+                <><span>🤖</span> Ask AI</>
+              )}
+            </button>
+          )}
 
         </div>
       </div>
@@ -382,6 +556,27 @@ export default function JobForm({ onJobAdded }) {
                 </div>
               )}
 
+              {/* Business selection (required) */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <span className="text-red-500 mr-1">*</span>
+                  Select Business (required)
+                </label>
+                <select
+                  className="input w-full"
+                  value={selectedBusinessId}
+                  onChange={(e) => setSelectedBusinessId(e.target.value)}
+                >
+                  <option value="">Select Business</option>
+                  {businesses.map((b) => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </select>
+                {!selectedBusinessId && (
+                  <p className="text-xs text-red-500 mt-1">Business is required to generate invoice</p>
+                )}
+              </div>
+
             </div>
 
             {/* Footer Buttons */}
@@ -395,10 +590,11 @@ export default function JobForm({ onJobAdded }) {
 
               <button
                 onClick={handleAcceptAndInvoice}
-                disabled={invoiceLoading || invoiceDone}
+                disabled={invoiceLoading || invoiceDone || !selectedBusinessId}
                 className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm text-white
                   bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 shadow-lg transition-all
-                  ${invoiceLoading ? "opacity-60 cursor-not-allowed" : "hover:scale-105"}`}
+                  ${(invoiceLoading || !selectedBusinessId) ? "opacity-60 cursor-not-allowed" : "hover:scale-105"}`}
+                title={!selectedBusinessId ? "Select a business first" : undefined}
               >
                 {invoiceLoading ? (
                   <>

@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+import asyncio
 from app.routes import customer, vehicle, job
 from app.init_db import init_db
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,12 +11,14 @@ from app.routes import business
 app = FastAPI()
 
 @app.on_event("startup")
-def startup():
-    init_db()
+async def startup():
+    # Run blocking DB initialization in a background thread to avoid
+    # blocking the event loop and causing lifespan cancellation issues.
+    await asyncio.to_thread(init_db)
 
 app.add_middleware(
     CORSMiddleware, 
-    allow_origins=["http://localhost:3001"], 
+    allow_origins=["http://localhost:3000"], 
     allow_methods=["*"], 
     allow_headers=["*"],
     allow_credentials=True)

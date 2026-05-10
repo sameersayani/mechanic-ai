@@ -59,6 +59,19 @@ def update_job(job_id: int, data: dict, user_id: int = Depends(get_current_user)
 
     return {"message": "Job updated successfully"}
 
+@router.delete("/{job_id}/")
+def delete_job(job_id: int, user_id: int = Depends(get_current_user)):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("DELETE FROM jobs WHERE id = %s AND user_id = %s", (job_id, user_id))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return {"message": "Job deleted successfully"}
+
 @router.get("/pending/")
 def getPendingJobs(
     user_id: int = Depends(get_current_user),
@@ -153,3 +166,41 @@ def get_jobs(
     ]
 
     return {"data": result, "total": total}
+
+@router.get("/{job_id}/")
+def get_job(job_id: int, user_id: int = Depends(get_current_user)):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT j.id, j.issue_description, j.status,
+        c.id AS customer_id, j.vehicle_id, v.customer_id, j.mechanic_id,
+                v.make, v.model, m.name AS mechanic_name, c.name AS customer_name
+        FROM jobs j
+        LEFT JOIN vehicles v ON j.vehicle_id = v.id
+        LEFT JOIN mechanics m ON j.mechanic_id = m.id
+        LEFT JOIN customers c ON v.customer_id = c.id
+        WHERE j.id = %s AND j.user_id = %s
+    """, (job_id, user_id))
+
+    row = cur.fetchone()
+
+    if not row:
+        return {"error": "Job not found"}
+
+    # Map columns to names for clarity
+    job = {
+        "id": row[0],
+        "issue": row[1],
+        "status": row[2],
+        "customer_id": row[3],
+        "vehicle_id": row[4],
+        "job_customer_id": row[5],
+        "mechanic_id": row[6],
+        "vehicle_make": row[7],
+        "vehicle_model": row[8],
+        "mechanic_name": row[9],
+        "customer_name": row[10]
+    }
+
+    return job

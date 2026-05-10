@@ -1,4 +1,4 @@
-const BASE_URL = "http://localhost:8001";
+const BASE_URL = "http://localhost:8000";
 
 export const getHeaders = () => {
   const token = localStorage.getItem("token");
@@ -48,8 +48,23 @@ export const updateJob = async (id, data) => {
   return handleResponse(res);
 };
 
+export const deleteJob = async (id) => {
+  const res = await fetch(`${BASE_URL}/jobs/${id}/`, {
+    method: "DELETE",
+    headers: getHeaders(),
+  });
+  return handleResponse(res);
+}
+
 export const getPendingJobs = async () => {
   const res = await fetch(`${BASE_URL}/jobs/pending/`, {
+    headers: getHeaders(),
+  });
+  return handleResponse(res);
+}
+
+export const getJobById = async (id) => {
+  const res = await fetch(`${BASE_URL}/jobs/${id}/`, {
     headers: getHeaders(),
   });
   return handleResponse(res);

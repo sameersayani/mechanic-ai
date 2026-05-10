@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { getJobs, updateJob, getInvoiceByJobId, updateInvoiceStatus } from "../api";
-import { Wrench, Car, FileText, X } from "lucide-react";
+import { getJobs, updateJob, deleteJob, getInvoiceByJobId, updateInvoiceStatus, getHeaders } from "../api";
+import { Wrench, Car, FileText, X, Building2, Pencil, Trash2 } from "lucide-react";
+import { toast } from "react-toastify";
 
-export default function JobList({ refreshTrigger }) {
+export default function JobList({ refreshTrigger, onEditJob, onJobDeleted }) {
   const [jobs, setJobs] = useState([]);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
@@ -11,6 +12,11 @@ export default function JobList({ refreshTrigger }) {
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [invoiceLoading, setInvoiceLoading] = useState(false);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+
+  // ── Delete confirm modal ─────────────────────────────────────────────────
+  const [jobToDelete, setJobToDelete] = useState(null); // job object pending deletion
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  // ────────────────────────────────────────────────────────────────────────
 
   useEffect(() => {
     loadJobs();
@@ -49,6 +55,33 @@ export default function JobList({ refreshTrigger }) {
     }
   };
 
+  // ── Edit ─────────────────────────────────────────────────────────────────
+  const handleEdit = (job) => {
+    onEditJob?.(job);
+  };
+
+  // ── Delete ───────────────────────────────────────────────────────────────
+  const handleDeleteClick = (job) => {
+    setJobToDelete(job);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!jobToDelete) return;
+    setDeleteLoading(true);
+    try {
+      await deleteJob(jobToDelete.id);
+      toast.success("Job deleted successfully");
+      setJobToDelete(null);
+      onJobDeleted?.();
+    } catch (err) {
+      console.error("Failed to delete job:", err);
+      toast.error("Failed to delete job");
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  // ── Invoice ──────────────────────────────────────────────────────────────
   const handleOpenInvoice = async (job) => {
     setInvoiceLoading(true);
     setShowInvoiceModal(true);
@@ -63,17 +96,43 @@ export default function JobList({ refreshTrigger }) {
     }
   };
 
+  const handleCloseModal = () => {
+    setShowInvoiceModal(false);
+    setSelectedInvoice(null);
+  };
+
+  const handleDownloadPdf = () => {
+    if (!selectedInvoice) return;
+
+    const url = `${process.env.REACT_APP_API_BASE || "http://localhost:8000"}/invoices/${selectedInvoice.id}/pdf`;
+    const headers = getHeaders();
+
+    fetch(url, { method: 'GET', headers })
+      .then(async (r) => {
+        if (!r.ok) throw new Error('Failed to download PDF');
+        const blob = await r.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = `invoice_${selectedInvoice.id}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(blobUrl);
+      })
+      .catch((err) => {
+        console.error(err);
+        alert('Failed to download PDF. Check console for details.');
+      });
+  };
+
   const togglePaymentStatus = async () => {
     if (!selectedInvoice) return;
     const newStatus = selectedInvoice.payment_status === "paid" ? "unpaid" : "paid";
-
-    // Optimistic update
     setSelectedInvoice((prev) => ({ ...prev, payment_status: newStatus }));
-
     try {
       await updateInvoiceStatus(selectedInvoice.id, newStatus);
     } catch (err) {
-      // Revert
       setSelectedInvoice((prev) => ({ ...prev, payment_status: selectedInvoice.payment_status }));
       console.error("Failed to update payment status:", err);
     }
@@ -126,8 +185,8 @@ export default function JobList({ refreshTrigger }) {
                 {job.mechanic_name || "Unassigned"}
               </div>
 
-              {/* Status Toggle + Invoice Button */}
-              <div className="flex items-center justify-between mt-3">
+              {/* Bottom row: Status toggle | Edit | Delete | Invoice */}
+              <div className="flex items-center justify-between mt-3 gap-2 flex-wrap">
 
                 {/* Pending / Done toggle */}
                 <div className="flex items-center gap-3">
@@ -154,15 +213,40 @@ export default function JobList({ refreshTrigger }) {
                   </span>
                 </div>
 
-                {/* Invoice Button */}
-                <button
-                  onClick={() => handleOpenInvoice(job)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 shadow transition-all hover:scale-105"
-                >
-                  <FileText className="w-3.5 h-3.5" />
-                  Invoice
-                </button>
+                {/* Right-side action buttons */}
+                <div className="flex items-center gap-2">
 
+                  {/* Edit */}
+                  <button
+                    onClick={() => handleEdit(job)}
+                    title="Edit job"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 shadow transition-all hover:scale-105"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                    Edit
+                  </button>
+
+                  {/* Delete */}
+                  <button
+                    onClick={() => handleDeleteClick(job)}
+                    title="Delete job"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 shadow transition-all hover:scale-105"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Delete
+                  </button>
+
+                  {/* Invoice */}
+                  <button
+                    onClick={() => handleOpenInvoice(job)}
+                    title="View invoice"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 shadow transition-all hover:scale-105"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    Invoice
+                  </button>
+
+                </div>
               </div>
             </div>
           ))
@@ -176,6 +260,68 @@ export default function JobList({ refreshTrigger }) {
         <button className="btn" disabled={isLastPage} onClick={() => setPage((p) => p + 1)}>Next</button>
       </div>
 
+      {/* ── DELETE CONFIRM MODAL ─────────────────────────────────────────── */}
+      {jobToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 px-4">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-sm">
+
+            {/* Header */}
+            <div className="flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-red-500 to-rose-600 rounded-t-2xl">
+              <Trash2 className="w-5 h-5 text-white shrink-0" />
+              <h2 className="text-lg font-bold text-white">Delete Job</h2>
+            </div>
+
+            <div className="px-6 py-5 space-y-3">
+              <p className="text-gray-700 dark:text-gray-300 font-medium">
+                Are you sure you want to delete this job?
+              </p>
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-xl px-4 py-3 space-y-1">
+                <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                  🔧 {jobToDelete.issue || "No issue"}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {jobToDelete.vehicle_name || "Unknown Vehicle"} · {jobToDelete.mechanic_name || "Unassigned"}
+                </p>
+              </div>
+              <p className="text-xs text-red-500 font-medium">
+                ⚠️ This action cannot be undone.
+              </p>
+            </div>
+
+            <div className="px-6 pb-5 flex gap-3">
+              <button
+                onClick={() => setJobToDelete(null)}
+                disabled={deleteLoading}
+                className="flex-1 btn bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={deleteLoading}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm text-white
+                  bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 shadow transition-all
+                  ${deleteLoading ? "opacity-60 cursor-not-allowed" : ""}`}
+              >
+                {deleteLoading ? (
+                  <>
+                    <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                    </svg>
+                    Deleting...
+                  </>
+                ) : (
+                  <><Trash2 className="w-4 h-4" /> Yes, Delete</>
+                )}
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+      {/* ──────────────────────────────────────────────────────────────────── */}
+
       {/* INVOICE MODAL */}
       {showInvoiceModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 px-4">
@@ -187,10 +333,7 @@ export default function JobList({ refreshTrigger }) {
                 <FileText className="w-5 h-5" />
                 <h2 className="text-lg font-bold">Invoice</h2>
               </div>
-              <button
-                onClick={() => setShowInvoiceModal(false)}
-                className="text-white hover:text-gray-200"
-              >
+              <button onClick={handleCloseModal} className="text-white hover:text-gray-200">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -211,6 +354,19 @@ export default function JobList({ refreshTrigger }) {
                 </div>
               ) : (
                 <div className="space-y-4">
+
+                  {/* Business Name (read-only — stored at invoice creation time) */}
+                  {selectedInvoice.business_name && (
+                    <div className="flex items-center gap-2.5 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800 rounded-xl px-4 py-3">
+                      <Building2 className="w-4 h-4 text-indigo-500 shrink-0" />
+                      <div>
+                        <p className="text-xs text-indigo-400 font-medium uppercase tracking-wide leading-none mb-0.5">Business</p>
+                        <p className="text-sm font-semibold text-indigo-700 dark:text-indigo-300">
+                          {selectedInvoice.business_name}
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Invoice ID */}
                   <div className="flex justify-between text-sm">
@@ -276,12 +432,14 @@ export default function JobList({ refreshTrigger }) {
 
             {/* Footer */}
             <div className="px-6 pb-5">
-              <button
-                onClick={() => setShowInvoiceModal(false)}
-                className="w-full btn"
-              >
-                Close
-              </button>
+              <div className="flex gap-2">
+                <button onClick={handleDownloadPdf} className="btn flex-1 bg-indigo-500 text-white hover:bg-indigo-600">
+                  Download PDF
+                </button>
+                <button onClick={handleCloseModal} className="btn flex-1">
+                  Close
+                </button>
+              </div>
             </div>
 
           </div>

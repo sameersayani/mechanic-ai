@@ -1,6 +1,7 @@
 fastapi
 uvicorn
 psycopg2-binary
+reportlab
 python-dotenv
 requests
 python-jose[cryptography]

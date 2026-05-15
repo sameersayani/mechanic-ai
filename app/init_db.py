@@ -19,10 +19,10 @@ def init_db():
     cur.execute("""
     CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
-        username TEXT UNIQUE,
-        hashed_password TEXT,
-        full_name TEXT,
-        email TEXT
+        email TEXT UNIQUE,
+        password character varying(255),
+        CONSTRAINT users_pkey PRIMARY KEY (id),
+        CONSTRAINT users_email_key UNIQUE (email)
     );
     """)
 

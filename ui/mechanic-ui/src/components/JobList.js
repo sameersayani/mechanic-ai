@@ -17,6 +17,7 @@ export default function JobList({ refreshTrigger, onEditJob, onJobDeleted }) {
   const [jobToDelete, setJobToDelete] = useState(null); // job object pending deletion
   const [deleteLoading, setDeleteLoading] = useState(false);
   // ────────────────────────────────────────────────────────────────────────
+   const BASE_URL = "https://mechanic-ai-brme.onrender.com";
 
   useEffect(() => {
     loadJobs();
@@ -104,7 +105,8 @@ export default function JobList({ refreshTrigger, onEditJob, onJobDeleted }) {
   const handleDownloadPdf = () => {
     if (!selectedInvoice) return;
 
-    const url = `${process.env.REACT_APP_API_BASE || "http://localhost:8000"}/invoices/${selectedInvoice.id}/pdf`;
+    // const url = `${process.env.REACT_APP_API_BASE || "http://localhost:8000"}/invoices/${selectedInvoice.id}/pdf`;
+    const url = `${BASE_URL}/invoices/${selectedInvoice.id}/pdf`;
     const headers = getHeaders();
 
     fetch(url, { method: 'GET', headers })

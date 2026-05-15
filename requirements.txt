@@ -9,3 +9,5 @@ openai
 passlib[bcrypt]
 python-multipart
 gunicorn
+passlib[bcrypt]==1.7.4
+bcrypt==4.0.1

@@ -10,7 +10,8 @@ def register(data: dict):
     conn = get_connection()
     cur = conn.cursor()
 
-    hashed = bcrypt.hash(data["password"])
+    password = data["password"][:72]
+    hashed = bcrypt.hash(password)
 
     cur.execute(
         "INSERT INTO users (email, password) VALUES (%s, %s)",

@@ -21,11 +21,16 @@ async def startup():
     # blocking the event loop and causing lifespan cancellation issues.
     await asyncio.to_thread(init_db)
 
-allowed = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000")
-allow_origins = [o.strip() for o in allowed.split(",") if o.strip()]
+# allowed = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000")
+origins = [
+    "https://mechanic-ai-ui.onrender.com",
+    "http://localhost:3000",
+    "http://localhost:3001"
+]
+# allow_origins = [o.strip() for o in allowed.split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allow_origins,
+    allow_origins=origins,
     allow_methods=["*"],
     allow_headers=["*"],
     allow_credentials=True,

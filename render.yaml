@@ -1,0 +1,24 @@
+# Render service template. Update names, region, and branch as needed.
+# Use this file as a starting point for `render` dashboard imports.
+
+services:
+  - type: web
+    name: mechanic-ai-backend
+    env: python
+    plan: free
+    region: oregon
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -k uvicorn.workers.UvicornWorker -w 4 -b 0.0.0.0:$PORT app.main:app
+
+static_sites:
+  - name: mechanic-ai-frontend
+    repo: .
+    branch: main
+    buildCommand: npm ci --prefix ui/mechanic-ui && npm run build --prefix ui/mechanic-ui
+    publishPath: ui/mechanic-ui/build
+
+databases:
+  - name: mechanic-ai-db
+    engine: postgres
+    version: "14"
+    plan: starter

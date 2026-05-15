@@ -1,4 +1,10 @@
 from app.db import get_connection
+from dotenv import load_dotenv
+
+
+load_dotenv()
+
+
 def init_db():
     try:
         conn = get_connection()
@@ -8,6 +14,17 @@ def init_db():
         return
 
     cur = conn.cursor()
+
+    # Core tables
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        username TEXT UNIQUE,
+        hashed_password TEXT,
+        full_name TEXT,
+        email TEXT
+    );
+    """)
 
     cur.execute("""
     CREATE TABLE IF NOT EXISTS customers (
@@ -68,33 +85,32 @@ def init_db():
         user_id INT
     );
     """)
+    # Ensure business table exists before adding references to it
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS public.business
+    (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        address TEXT,
+        phone TEXT,
+        email TEXT,
+        website TEXT,
+        user_id INT,
+        is_active boolean DEFAULT true
+    );
+    """)
 
     cur.execute("ALTER TABLE customers ADD COLUMN IF NOT EXISTS user_id INT;")
     cur.execute("ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS user_id INT;")
     cur.execute("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS user_id INT;")
     cur.execute("ALTER TABLE invoices ADD COLUMN IF NOT EXISTS user_id INT;")
-    cur.execute("ALTER TABLE invoices ADD COLUMN IF NOT EXISTS business_id INT REFERENCES business(id);")
+    cur.execute("ALTER TABLE invoices ADD COLUMN IF NOT EXISTS business_id INT REFERENCES public.business(id);")
     cur.execute("ALTER TABLE invoices ADD COLUMN IF NOT EXISTS vat_rate NUMERIC;")
     cur.execute("ALTER TABLE invoices ADD COLUMN IF NOT EXISTS vat_amount NUMERIC;")
     cur.execute("ALTER TABLE invoices ADD COLUMN IF NOT EXISTS currency VARCHAR(10);")
     cur.execute("ALTER TABLE jobs DROP COLUMN IF EXISTS assigned_mechanic;")
     cur.execute("ALTER TABLE jobs ADD COLUMN IF NOT EXISTS mechanic_id INT REFERENCES mechanics(id);")
     cur.execute("ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;")
-
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS public.business
-    (
-        id SERIAL,
-        name TEXT NOT NULL,
-        address TEXT,
-        phone TEXT NOT NULL,
-        email TEXT,
-        website TEXT,
-        user_id INT,
-        is_active boolean DEFAULT true,
-        CONSTRAINT business_pkey PRIMARY KEY (id, name)
-    );
-    """)
 
     conn.commit()
     cur.close()

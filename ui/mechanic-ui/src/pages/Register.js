@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { toast } from "react-toastify";
 
+const BASE_URL = "https://mechanic-ai-brme.onrender.com";
+
 export default function Register() {
   const [form, setForm] = useState({ email: "", password: "" });
 
@@ -36,7 +38,7 @@ export default function Register() {
     try {
       setLoading(true);
 
-      const res = await fetch("http://localhost:8000/auth/register", {
+      const res = await fetch(`${BASE_URL}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),

@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { toast } from "react-toastify";
 
+const BASE_URL = "https://mechanic-ai-brme.onrender.com";
+
 export default function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
 
   const handleLogin = async () => {
-    const res = await fetch("http://localhost:8000/auth/login", {
+    const res = await fetch(`${BASE_URL}/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(form),

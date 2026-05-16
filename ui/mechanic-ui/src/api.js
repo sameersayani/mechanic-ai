@@ -197,14 +197,23 @@ export const getBusinesses = async () => {
 
 const handleResponse = async (res) => {
   if (res.status === 401 || res.status === 403) {
-   
     localStorage.removeItem("token");
-
-    window.location.href = "/login"; // 🔥 redirect globally
-
+    window.location.href = "/login";
     return null;
   }
-
+ 
   const data = await res.json();
-  return res.ok ? data : Promise.reject(data);
+ 
+  if (!res.ok) {
+    // 422 Pydantic validation errors → detail is an array
+    if (Array.isArray(data.detail)) {
+      const firstError = data.detail[0]?.msg || "Validation error";
+      // Strip pydantic's "Value error, " prefix
+      throw new Error(firstError.replace("Value error, ", ""));
+    }
+    // 400 / 500 → detail is a plain string
+    throw new Error(data.detail || "Something went wrong");
+  }
+ 
+  return data;
 };

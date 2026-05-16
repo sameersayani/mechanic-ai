@@ -65,7 +65,17 @@ def delete_job(job_id: int, user_id: int = Depends(get_current_user)):
     conn = get_connection()
     cur = conn.cursor()
 
-    cur.execute("DELETE FROM jobs WHERE id = %s AND user_id = %s", (job_id, user_id))
+    # Step 1: Delete linked invoice first (FK constraint)
+    cur.execute(
+        "DELETE FROM invoices WHERE job_id = %s AND user_id = %s",
+        (job_id, user_id)
+    )
+
+    # Step 2: Now safe to delete the job
+    cur.execute(
+        "DELETE FROM jobs WHERE id = %s AND user_id = %s",
+        (job_id, user_id)
+    )
 
     conn.commit()
     cur.close()

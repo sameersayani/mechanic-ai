@@ -13,7 +13,7 @@ class RegisterRequest(BaseModel):
     email: EmailStr
     password: str
     captcha_input: str
-    captcha_answer: str  # The correct answer generated server-side or sent from client
+    captcha_answer: str
 
     @field_validator("password")
     @classmethod
@@ -23,31 +23,22 @@ class RegisterRequest(BaseModel):
         if len(v) > 10:
             raise ValueError("Password must be at most 10 characters")
         return v
-
-    @field_validator("captcha_input")
-    @classmethod
-    def validate_captcha(cls, v, info):
-        # Compare captcha_input against captcha_answer (case-insensitive)
-        answer = info.data.get("captcha_answer", "")
-        if v.strip().lower() != answer.strip().lower():
-            raise HTTPException(status_code=400, detail="Captcha does not match")
-        return v
-
-
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
-
 
 # ── Routes ───────────────────────────────────────────────────────────────────
 
 @router.post("/register")
 def register(data: RegisterRequest):
+    # Validate captcha here instead of in the Pydantic model
+    if data.captcha_input.strip().lower() != data.captcha_answer.strip().lower():
+        raise HTTPException(status_code=400, detail="Captcha does not match")
+
     conn = get_connection()
     cur = conn.cursor()
 
     try:
-        # Check if user already exists with this email
         cur.execute("SELECT id FROM users WHERE email = %s", (data.email,))
         existing = cur.fetchone()
         if existing:
@@ -56,7 +47,6 @@ def register(data: RegisterRequest):
                 detail=f"User already exists with email {data.email}"
             )
 
-        # Hash and store password (cap at 72 chars — bcrypt limit)
         hashed = bcrypt.hash(data.password[:72])
         cur.execute(
             "INSERT INTO users (email, password) VALUES (%s, %s)",
@@ -66,7 +56,7 @@ def register(data: RegisterRequest):
         return {"message": "User created successfully"}
 
     except HTTPException:
-        raise  # Re-raise HTTP exceptions as-is
+        raise
 
     except Exception as e:
         conn.rollback()

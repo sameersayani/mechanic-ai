@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, EmailStr, field_validator
 from app.db import get_connection
 from app.auth import create_token
-from passlib.hash import bcrypt
+import bcrypt as bcryptlib
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -47,7 +47,7 @@ def register(data: RegisterRequest):
                 detail=f"User already exists with email {data.email}"
             )
 
-        hashed = bcrypt.hash(data.password)
+        hashed = bcryptlib.hashpw(data.password.encode("utf-8"), bcryptlib.gensalt()).decode("utf-8")
         cur.execute(
             "INSERT INTO users (email, password) VALUES (%s, %s)",
             (data.email, hashed)
@@ -81,7 +81,7 @@ def login(data: LoginRequest):
 
         user_id, hashed_pw = user
 
-        if not bcrypt.verify(data.password, hashed_pw):
+        if not bcryptlib.checkpw(data.password.encode("utf-8"), hashed_pw.encode("utf-8")):
             raise HTTPException(status_code=401, detail="Invalid password")
 
         token = create_token({"user_id": user_id})

@@ -47,7 +47,7 @@ def register(data: RegisterRequest):
                 detail=f"User already exists with email {data.email}"
             )
 
-        hashed = bcrypt.hash(data.password[:72])
+        hashed = bcrypt.hash(data.password)
         cur.execute(
             "INSERT INTO users (email, password) VALUES (%s, %s)",
             (data.email, hashed)

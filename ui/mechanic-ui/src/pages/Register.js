@@ -22,16 +22,17 @@ export default function Register() {
   };
 
   const handleRegister = async () => {
+    // Client-side captcha check — no need to hit the server for this
     const correctAnswer = captcha.num1 + captcha.num2;
-
     if (parseInt(answer) !== correctAnswer) {
-      toast.error("Incorrect captcha");
+      toast.error("Incorrect captcha answer");
       refreshCaptcha();
+      setAnswer("");
       return;
     }
 
     if (!form.email || !form.password) {
-      toast.warning("Email and password required");
+      toast.warning("Email and password are required");
       return;
     }
 
@@ -50,10 +51,17 @@ export default function Register() {
         toast.success("Registration successful 🎉");
         setTimeout(() => { window.location.href = "/login"; }, 1500);
       } else {
-        toast.error(data.detail || "Registration failed");
+        // 422 Pydantic validation errors — detail is an array
+        if (Array.isArray(data.detail)) {
+          const firstError = data.detail[0]?.msg || "Validation error";
+          toast.error(firstError.replace("Value error, ", ""));
+        } else {
+          // 400 duplicate email or 500 — detail is a plain string
+          toast.error(data.detail || "Registration failed");
+        }
       }
     } catch (err) {
-      toast.error("Server error");
+      toast.error(err.message || "Server error");
     } finally {
       setLoading(false);
     }

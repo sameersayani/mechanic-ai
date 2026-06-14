@@ -20,9 +20,7 @@ def init_db():
     CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
         email TEXT UNIQUE,
-        password character varying(255),
-        CONSTRAINT users_pkey PRIMARY KEY (id),
-        CONSTRAINT users_email_key UNIQUE (email)
+        password character varying(255)
     );
     """)
 

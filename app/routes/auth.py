@@ -21,7 +21,7 @@ class RegisterRequest(BaseModel):
         if len(v) < 6:
             raise ValueError("Password must be at least 6 characters")
         if len(v) > 10:
-            raise ValueError("Password must be at most 10 characters")
+            raise ValueError("Password can't be more than 10 characters")
         return v
 class LoginRequest(BaseModel):
     email: EmailStr

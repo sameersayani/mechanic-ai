@@ -1,5 +1,12 @@
 # Mechanic AI
 
+This app is developed for ganrage management system to tackle various jobs for automobile work. With AI support using generative AI, it helps end to end workflow of taking up a job/work, suggests on what issues are and solution. It also generates AI auto-invoices and also allows users to cutomize the cost/fee. Feel Free to register and give it a try. Let me know your views/suggestions.
+
+https://mechanic-ai-ui.onrender.com
+
+![alt text](login-1.png)
+![alt text](dashboard-1.png)
+
 This repository contains a FastAPI backend and a React frontend for a mechanic workshop management app with AI-assisted diagnostics and invoice generation.
 
 ---
@@ -105,13 +112,3 @@ Below are sample snapshots of the frontend UI. Replace these with real screensho
 
 - If the backend fails at startup, check DB connectivity and environment vars.
 - If the frontend fails to build due to modern JS features, ensure Node.js is up-to-date (v16+ recommended).
-
----
-
-If you'd like, I can:
-- Add CI scripts to run tests and linting
-- Replace mock snapshots with real screenshots you provide
-- Add a `docker-compose.yml` example to run Postgres + backend + frontend together
-
-![alt text](login-1.png)
-![alt text](dashboard-1.png)
